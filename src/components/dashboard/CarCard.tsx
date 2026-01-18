@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Car as CarIcon, MoreVertical, Pencil, Trash2, Calendar } from "lucide-react";
+import { Car as CarIcon, MoreVertical, Pencil, Trash2, Calendar, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,7 +10,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { formatHungarianNumber, formatHungarianDate, getInsuranceStatus } from "@/lib/database";
+import { formatHungarianNumber, formatHungarianDate } from "@/lib/database";
+import { calculateCarStatus } from "@/lib/carStatus";
+import { StatusProgressBar } from "./StatusProgressBar";
 import { Car } from "@/types/database";
 
 interface CarCardProps {
@@ -20,36 +22,8 @@ interface CarCardProps {
   onDelete: (car: Car) => void;
 }
 
-function getStatusBadge(days: number) {
-  const status = getInsuranceStatus(days);
-  
-  switch (status) {
-    case "urgent":
-      return {
-        label: days < 0 ? "Lejárt" : "Sürgős!",
-        className: "bg-destructive text-destructive-foreground",
-      };
-    case "warning":
-      return {
-        label: "Váltási időszak",
-        className: "bg-warning text-warning-foreground",
-      };
-    case "upcoming":
-      return {
-        label: "Figyelj!",
-        className: "bg-primary/80 text-primary-foreground",
-      };
-    case "safe":
-    default:
-      return {
-        label: "Rendben",
-        className: "bg-secondary text-secondary-foreground",
-      };
-  }
-}
-
 export function CarCard({ car, daysUntilAnniversary, onEdit, onDelete }: CarCardProps) {
-  const statusBadge = getStatusBadge(daysUntilAnniversary);
+  const status = calculateCarStatus(car.anniversary_date);
   const estimatedSavings = car.current_annual_fee 
     ? Math.round(car.current_annual_fee * 0.18) 
     : null;
@@ -58,7 +32,9 @@ export function CarCard({ car, daysUntilAnniversary, onEdit, onDelete }: CarCard
     <div className="bg-card rounded-xl border border-border hover:border-primary/30 hover:shadow-md transition-all p-5">
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
-        <Badge className={statusBadge.className}>{statusBadge.label}</Badge>
+        <Badge className={cn(status.statusColor, "text-white")}>
+          {status.statusLabel}
+        </Badge>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -86,8 +62,8 @@ export function CarCard({ car, daysUntilAnniversary, onEdit, onDelete }: CarCard
         <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
           <CarIcon className="w-6 h-6 text-primary" />
         </div>
-        <div>
-          <h3 className="font-semibold text-foreground text-lg">{car.nickname}</h3>
+        <div className="flex-1 min-w-0">
+          <h3 className="font-semibold text-foreground text-lg truncate">{car.nickname}</h3>
           <p className="text-sm text-muted-foreground">
             {car.brand} {car.model}, {car.year}
           </p>
@@ -99,14 +75,13 @@ export function CarCard({ car, daysUntilAnniversary, onEdit, onDelete }: CarCard
         </div>
       </div>
 
+      {/* Progress Bar */}
+      <div className="mb-4">
+        <StatusProgressBar status={status} />
+      </div>
+
       {/* Anniversary Box */}
-      <div className={cn(
-        "rounded-lg p-3 mb-4",
-        daysUntilAnniversary <= 7 ? "bg-destructive/10" :
-        daysUntilAnniversary <= 30 ? "bg-warning/10" :
-        daysUntilAnniversary <= 50 ? "bg-primary/10" :
-        "bg-muted"
-      )}>
+      <div className={cn("rounded-lg p-3 mb-4", status.bgColor)}>
         <div className="flex items-center gap-2 text-sm mb-1">
           <Calendar className="w-4 h-4 text-muted-foreground" />
           <span className="text-muted-foreground">Évforduló:</span>
@@ -114,16 +89,10 @@ export function CarCard({ car, daysUntilAnniversary, onEdit, onDelete }: CarCard
             {formatHungarianDate(car.anniversary_date)}
           </span>
         </div>
-        <p className={cn(
-          "text-sm font-semibold",
-          daysUntilAnniversary <= 7 ? "text-destructive" :
-          daysUntilAnniversary <= 30 ? "text-warning" :
-          daysUntilAnniversary <= 50 ? "text-primary" :
-          "text-secondary"
-        )}>
-          {daysUntilAnniversary < 0 
-            ? `${Math.abs(daysUntilAnniversary)} napja lejárt`
-            : `${daysUntilAnniversary} nap van hátra`
+        <p className={cn("text-sm font-semibold", status.textColor)}>
+          {status.daysRemaining < 0 
+            ? `${Math.abs(status.daysRemaining)} napja lejárt`
+            : `${status.daysRemaining} nap van hátra`
           }
         </p>
       </div>
@@ -158,6 +127,16 @@ export function CarCard({ car, daysUntilAnniversary, onEdit, onDelete }: CarCard
         >
           <Pencil className="w-4 h-4" />
           Szerkesztés
+        </Button>
+        <Button 
+          variant="ghost" 
+          size="sm"
+          asChild
+        >
+          <Link to={`/dashboard/cars/${car.id}`}>
+            Részletek
+            <ChevronRight className="w-4 h-4" />
+          </Link>
         </Button>
       </div>
     </div>
