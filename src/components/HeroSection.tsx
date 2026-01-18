@@ -146,8 +146,8 @@ const HeroSection = () => {
             variants={itemVariants}
           >
             Soha többé ne fizess{" "}
-            <span className="text-primary">túl sokat</span>{" "}
-            a kötelezőért!
+            <span className="text-primary">többet</span>{" "}
+            a kötelezőért, mint amennyit muszáj!
           </motion.h1>
 
           {/* Subheadline */}
