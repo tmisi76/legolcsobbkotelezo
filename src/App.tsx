@@ -12,6 +12,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import DashboardHome from "./pages/DashboardHome";
 import DashboardCars from "./pages/DashboardCars";
 import DashboardSettings from "./pages/DashboardSettings";
+import CarDetailsPage from "./pages/CarDetailsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -62,6 +63,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <DashboardCars />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/cars/:id"
+              element={
+                <ProtectedRoute>
+                  <CarDetailsPage />
                 </ProtectedRoute>
               }
             />
