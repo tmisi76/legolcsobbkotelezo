@@ -13,6 +13,8 @@ import DashboardHome from "./pages/DashboardHome";
 import DashboardCars from "./pages/DashboardCars";
 import DashboardSettings from "./pages/DashboardSettings";
 import CarDetailsPage from "./pages/CarDetailsPage";
+import AdminDashboard from "./pages/AdminDashboard";
+import AdminEmailPreview from "./pages/AdminEmailPreview";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -79,6 +81,22 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <DashboardSettings />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute>
+                  <AdminDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/email-preview"
+              element={
+                <ProtectedRoute>
+                  <AdminEmailPreview />
                 </ProtectedRoute>
               }
             />
