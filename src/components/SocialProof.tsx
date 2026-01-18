@@ -1,7 +1,9 @@
+import { motion } from "framer-motion";
 import { useInView } from "@/hooks/useInView";
 import { useCountUp } from "@/hooks/useCountUp";
 import { useAppStats } from "@/hooks/useAppStats";
 import { Users, Car, PiggyBank } from "lucide-react";
+import { StatCardSkeleton } from "@/components/ui/skeleton-card";
 
 interface StatItemProps {
   value: number;
@@ -24,20 +26,38 @@ const StatItem = ({ value, suffix = "", label, icon: Icon, delay, isInView }: St
   };
 
   return (
-    <div
-      className={`text-center transition-all duration-700 ${
-        isInView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
-      }`}
-      style={{ transitionDelay: `${delay}ms` }}
+    <motion.div
+      className="text-center"
+      initial={{ opacity: 0, y: 30, scale: 0.9 }}
+      animate={isInView ? { opacity: 1, y: 0, scale: 1 } : {}}
+      transition={{ 
+        duration: 0.5, 
+        delay: delay / 1000,
+        ease: [0.16, 1, 0.3, 1]
+      }}
     >
-      <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 mb-4">
+      <motion.div 
+        className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 mb-4"
+        initial={{ scale: 0, rotate: -180 }}
+        animate={isInView ? { scale: 1, rotate: 0 } : {}}
+        transition={{ 
+          type: "spring",
+          stiffness: 300,
+          damping: 15,
+          delay: delay / 1000 + 0.1
+        }}
+        whileHover={{ scale: 1.1, rotate: 5 }}
+      >
         <Icon className="w-7 h-7 text-primary" />
-      </div>
-      <div className="text-4xl md:text-5xl font-extrabold text-primary mb-2" style={{ textShadow: "0 2px 10px rgba(30, 64, 175, 0.15)" }}>
+      </motion.div>
+      <motion.div 
+        className="text-4xl md:text-5xl font-extrabold text-primary mb-2"
+        style={{ textShadow: "0 2px 10px rgba(30, 64, 175, 0.15)" }}
+      >
         {formatNumber(count)}{suffix}
-      </div>
+      </motion.div>
       <p className="text-muted-foreground font-medium">{label}</p>
-    </div>
+    </motion.div>
   );
 };
 
@@ -67,12 +87,29 @@ const SocialProof = () => {
     },
   ];
 
+  if (loading) {
+    return (
+      <section className="py-16 md:py-24 bg-background">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 max-w-4xl mx-auto">
+            {[1, 2, 3].map((i) => (
+              <StatCardSkeleton key={i} />
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="py-16 md:py-24 bg-background">
       <div className="container mx-auto px-4">
-        <div
+        <motion.div
           ref={ref}
           className="grid grid-cols-1 md:grid-cols-3 gap-12 max-w-4xl mx-auto"
+          initial={{ opacity: 0 }}
+          animate={isInView ? { opacity: 1 } : {}}
+          transition={{ duration: 0.3 }}
         >
           {statsData.map((stat, index) => (
             <StatItem
@@ -82,10 +119,10 @@ const SocialProof = () => {
               label={stat.label}
               icon={stat.icon}
               delay={index * 150}
-              isInView={isInView && !loading}
+              isInView={isInView}
             />
           ))}
-        </div>
+        </motion.div>
       </div>
     </section>
   );
