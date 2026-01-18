@@ -48,8 +48,8 @@ const handler = async (req: Request): Promise<Response> => {
         .eq('anniversary_date', targetDateStr);
 
       if (carsError) {
-        console.error(`Error fetching cars for ${days} days:`, carsError);
-        results.push({ type: reminderType, carsSent: 0, errors: [carsError.message] });
+        console.error(`[check-reminders] Cars fetch error for ${days} days`);
+        results.push({ type: reminderType, carsSent: 0, errors: ['Database error'] });
         continue;
       }
 
@@ -99,8 +99,8 @@ const handler = async (req: Request): Promise<Response> => {
             .maybeSingle();
 
           if (logError) {
-            console.error(`Error checking reminder log for car ${car.id}:`, logError);
-            errors.push(`Log check failed for ${car.nickname}`);
+            console.error(`[check-reminders] Log check error for car`);
+            errors.push(`Log check failed`);
             continue;
           }
 
@@ -124,15 +124,14 @@ const handler = async (req: Request): Promise<Response> => {
 
           if (sendResponse.ok) {
             sentCount++;
-            console.log(`Reminder sent for car ${car.id} (${car.nickname})`);
+            console.log(`[check-reminders] Reminder sent for car ${car.id}`);
           } else {
-            const errorText = await sendResponse.text();
-            console.error(`Failed to send reminder for car ${car.id}:`, errorText);
-            errors.push(`Send failed for ${car.nickname}: ${errorText}`);
+            console.error(`[check-reminders] Send failed for car ${car.id}`);
+            errors.push(`Send failed`);
           }
         } catch (err: any) {
-          console.error(`Error processing car ${car.id}:`, err);
-          errors.push(`Error for ${car.nickname}: ${err.message}`);
+          console.error(`[check-reminders] Error processing car ${car.id}`);
+          errors.push(`Processing error`);
         }
       }
 
@@ -150,9 +149,9 @@ const handler = async (req: Request): Promise<Response> => {
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: any) {
-    console.error("Error in check-reminders function:", error);
+    console.error("[check-reminders] Function error:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ errorCode: 'INTERNAL_ERROR' }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

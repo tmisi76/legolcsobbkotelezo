@@ -21,7 +21,8 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+      console.error("[estimate-savings] API key not configured");
+      throw new Error("Service configuration error");
     }
 
     const { brand, model, year, enginePowerKw, currentAnnualFee }: SavingsRequest = await req.json();
@@ -109,19 +110,18 @@ Provide a realistic savings estimate. Typical savings range is 10-25% of current
     if (!response.ok) {
       if (response.status === 429) {
         return new Response(
-          JSON.stringify({ error: "Rate limit exceeded, please try again later." }),
+          JSON.stringify({ errorCode: 'RATE_LIMIT' }),
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       if (response.status === 402) {
         return new Response(
-          JSON.stringify({ error: "AI credits exhausted, please add funds." }),
+          JSON.stringify({ errorCode: 'SERVICE_UNAVAILABLE' }),
           { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
-      throw new Error(`AI gateway error: ${response.status}`);
+      console.error("[estimate-savings] AI gateway error:", response.status);
+      throw new Error("Service temporarily unavailable");
     }
 
     const aiResponse = await response.json();
@@ -153,9 +153,9 @@ Provide a realistic savings estimate. Typical savings range is 10-25% of current
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: any) {
-    console.error("Error in estimate-savings function:", error);
+    console.error("[estimate-savings] Function error:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ errorCode: 'INTERNAL_ERROR' }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

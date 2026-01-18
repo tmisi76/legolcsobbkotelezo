@@ -11,8 +11,8 @@ export async function getUserProfile(userId: string): Promise<Profile | null> {
     .maybeSingle();
 
   if (error) {
-    console.error('Error fetching user profile:', error);
-    throw error;
+    console.error('[Database] Profile fetch failed');
+    throw new Error('Unable to fetch profile');
   }
 
   return data;
@@ -29,8 +29,8 @@ export async function createUserProfile(userId: string, fullName: string): Promi
     .single();
 
   if (error) {
-    console.error('Error creating user profile:', error);
-    throw error;
+    console.error('[Database] Profile creation failed');
+    throw new Error('Unable to create profile');
   }
 
   return data;
@@ -45,8 +45,8 @@ export async function updateUserProfile(userId: string, updates: ProfileUpdate):
     .single();
 
   if (error) {
-    console.error('Error updating user profile:', error);
-    throw error;
+    console.error('[Database] Profile update failed');
+    throw new Error('Unable to update profile');
   }
 
   return data;
@@ -62,8 +62,8 @@ export async function getUserCars(userId: string): Promise<Car[]> {
     .order('anniversary_date', { ascending: true });
 
   if (error) {
-    console.error('Error fetching user cars:', error);
-    throw error;
+    console.error('[Database] Cars fetch failed');
+    throw new Error('Unable to fetch cars');
   }
 
   return data || [];
@@ -77,8 +77,8 @@ export async function getCarById(carId: string): Promise<Car | null> {
     .maybeSingle();
 
   if (error) {
-    console.error('Error fetching car:', error);
-    throw error;
+    console.error('[Database] Car fetch failed');
+    throw new Error('Unable to fetch car');
   }
 
   return data;
@@ -92,8 +92,8 @@ export async function createCar(carData: CarInsert): Promise<Car> {
     .single();
 
   if (error) {
-    console.error('Error creating car:', error);
-    throw error;
+    console.error('[Database] Car creation failed');
+    throw new Error('Unable to create car');
   }
 
   return data;
@@ -108,8 +108,8 @@ export async function updateCar(carId: string, updates: CarUpdate): Promise<Car>
     .single();
 
   if (error) {
-    console.error('Error updating car:', error);
-    throw error;
+    console.error('[Database] Car update failed');
+    throw new Error('Unable to update car');
   }
 
   return data;
@@ -122,8 +122,8 @@ export async function deleteCar(carId: string): Promise<void> {
     .eq('id', carId);
 
   if (error) {
-    console.error('Error deleting car:', error);
-    throw error;
+    console.error('[Database] Car deletion failed');
+    throw new Error('Unable to delete car');
   }
 }
 
@@ -137,8 +137,8 @@ export async function getAppStats(): Promise<AppStats | null> {
     .maybeSingle();
 
   if (error) {
-    console.error('Error fetching app stats:', error);
-    throw error;
+    console.error('[Database] App stats fetch failed');
+    throw new Error('Unable to fetch app stats');
   }
 
   return data;

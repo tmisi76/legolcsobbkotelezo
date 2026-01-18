@@ -268,9 +268,9 @@ const handler = async (req: Request): Promise<Response> => {
       .single();
 
     if (carError || !car) {
-      console.error('Car not found:', carError);
+      console.error('[send-reminder-email] Car lookup failed');
       return new Response(
-        JSON.stringify({ error: 'Car not found' }),
+        JSON.stringify({ errorCode: 'RESOURCE_NOT_FOUND' }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -283,9 +283,9 @@ const handler = async (req: Request): Promise<Response> => {
       .single();
 
     if (profileError || !profile) {
-      console.error('Profile not found:', profileError);
+      console.error('[send-reminder-email] Profile not found for car');
       return new Response(
-        JSON.stringify({ error: 'Profile not found' }),
+        JSON.stringify({ errorCode: 'RESOURCE_NOT_FOUND' }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -294,9 +294,9 @@ const handler = async (req: Request): Promise<Response> => {
     const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(car.user_id);
     
     if (authError || !authUser.user) {
-      console.error('Auth user not found:', authError);
+      console.error('[send-reminder-email] User auth lookup failed');
       return new Response(
-        JSON.stringify({ error: 'User not found' }),
+        JSON.stringify({ errorCode: 'RESOURCE_NOT_FOUND' }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -335,9 +335,9 @@ const handler = async (req: Request): Promise<Response> => {
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: any) {
-    console.error("Error in send-reminder-email function:", error);
+    console.error("[send-reminder-email] Unexpected error:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ errorCode: 'INTERNAL_ERROR' }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
