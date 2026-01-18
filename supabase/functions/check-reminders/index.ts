@@ -23,8 +23,55 @@ const handler = async (req: Request): Promise<Response> => {
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    
+    // Check authorization
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      console.log('[check-reminders] Missing authorization header');
+      return new Response(
+        JSON.stringify({ errorCode: 'UNAUTHORIZED' }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Create client with user's token to validate
+    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
+    
+    if (claimsError || !claimsData?.claims) {
+      console.log('[check-reminders] Invalid token');
+      return new Response(
+        JSON.stringify({ errorCode: 'UNAUTHORIZED' }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const userId = claimsData.claims.sub;
+
+    // Use service role client for admin check and operations
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Check if user is admin using the has_role function
+    const { data: isAdmin, error: roleError } = await supabase.rpc('has_role', {
+      _user_id: userId,
+      _role: 'admin'
+    });
+
+    if (roleError || !isAdmin) {
+      console.log('[check-reminders] User is not admin');
+      return new Response(
+        JSON.stringify({ errorCode: 'FORBIDDEN' }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log('[check-reminders] Admin authorization verified');
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);

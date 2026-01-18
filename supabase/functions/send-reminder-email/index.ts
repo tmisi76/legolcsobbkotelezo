@@ -253,14 +253,61 @@ const handler = async (req: Request): Promise<Response> => {
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const { carId, reminderType, testEmail }: ReminderEmailRequest = await req.json();
 
-    console.log(`Processing reminder email for car ${carId}, type: ${reminderType}`);
+    console.log(`[send-reminder-email] Processing request for car ${carId}, type ${reminderType}`);
 
-    // Get car with profile data
+    // Check authorization
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      console.log('[send-reminder-email] Missing authorization header');
+      return new Response(
+        JSON.stringify({ errorCode: 'UNAUTHORIZED' }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Create client with user's token to validate
+    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
+    
+    if (claimsError || !claimsData?.claims) {
+      console.log('[send-reminder-email] Invalid token');
+      return new Response(
+        JSON.stringify({ errorCode: 'UNAUTHORIZED' }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const userId = claimsData.claims.sub;
+
+    // Use service role client for admin check and operations
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Check if user is admin using the has_role function
+    const { data: isAdmin, error: roleError } = await supabase.rpc('has_role', {
+      _user_id: userId,
+      _role: 'admin'
+    });
+
+    if (roleError || !isAdmin) {
+      console.log('[send-reminder-email] User is not admin');
+      return new Response(
+        JSON.stringify({ errorCode: 'FORBIDDEN' }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log('[send-reminder-email] Admin authorization verified');
+
+    // Get car data
     const { data: car, error: carError } = await supabase
       .from('cars')
       .select('*')
@@ -314,11 +361,11 @@ const handler = async (req: Request): Promise<Response> => {
     const subject = getEmailSubject(reminderType, car.nickname);
     const html = generateEmailHtml(carWithProfile, reminderType);
 
-    console.log(`Sending email to ${recipientEmail}`);
+    console.log(`[send-reminder-email] Sending email to ${recipientEmail}`);
 
     const emailResponse = await sendEmailWithResend(recipientEmail, subject, html);
 
-    console.log("Email sent successfully:", emailResponse);
+    console.log("[send-reminder-email] Email sent successfully");
 
     // Log the reminder (only for non-test emails)
     if (!testEmail) {
