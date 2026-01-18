@@ -119,10 +119,10 @@ export default function AdminDashboard() {
       setUpcomingCars(cars || []);
       setTodayReminders(reminders || []);
     } catch (error) {
-      console.error('Error loading admin data:', error);
+      console.error('[Admin] Data load failed');
       toast({
         title: "Hiba",
-        description: "Nem sikerült betölteni az adatokat",
+        description: "Nem sikerült betölteni az adatokat. Kérjük, próbálja újra.",
         variant: "destructive",
       });
     } finally {
@@ -155,10 +155,10 @@ export default function AdminDashboard() {
         description: `Az email a(z) ${user.email} címre lett küldve.`,
       });
     } catch (error: any) {
-      console.error('Error sending test email:', error);
+      console.error('[Admin] Test email failed');
       toast({
         title: "Hiba",
-        description: error.message || "Nem sikerült elküldeni a teszt emailt",
+        description: "Nem sikerült elküldeni a teszt emailt. Kérjük, próbálja újra.",
         variant: "destructive",
       });
     } finally {
@@ -175,17 +175,20 @@ export default function AdminDashboard() {
         throw response.error;
       }
 
+      const results = response.data?.results;
+      const totalSent = results?.reduce((acc: number, r: any) => acc + (r.carsSent || 0), 0) || 0;
+      
       toast({
         title: "✅ Emlékeztető ellenőrzés lefutott!",
-        description: `Eredmény: ${JSON.stringify(response.data?.results)}`,
+        description: `${totalSent} emlékeztető elküldve.`,
       });
       
       loadData();
     } catch (error: any) {
-      console.error('Error running reminder check:', error);
+      console.error('[Admin] Reminder check failed');
       toast({
         title: "Hiba",
-        description: error.message || "Nem sikerült lefuttatni az ellenőrzést",
+        description: "Nem sikerült lefuttatni az ellenőrzést. Kérjük, próbálja újra.",
         variant: "destructive",
       });
     } finally {
