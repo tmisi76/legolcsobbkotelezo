@@ -1,5 +1,6 @@
 import { useInView } from "@/hooks/useInView";
 import { useCountUp } from "@/hooks/useCountUp";
+import { useAppStats } from "@/hooks/useAppStats";
 import { Users, Car, PiggyBank } from "lucide-react";
 
 interface StatItemProps {
@@ -42,11 +43,28 @@ const StatItem = ({ value, suffix = "", label, icon: Icon, delay, isInView }: St
 
 const SocialProof = () => {
   const { ref, isInView } = useInView({ threshold: 0.3 });
+  const { stats, loading } = useAppStats();
 
-  const stats = [
-    { value: 2847, suffix: "", label: "Regisztrált felhasználó", icon: Users },
-    { value: 4123, suffix: "", label: "Figyelt autó", icon: Car },
-    { value: 47, suffix: "+ millió Ft", label: "Becsült megtakarítás", icon: PiggyBank },
+  // Use stats from database or fallback defaults
+  const statsData = [
+    { 
+      value: stats?.total_users ?? 2847, 
+      suffix: "", 
+      label: "Regisztrált felhasználó", 
+      icon: Users 
+    },
+    { 
+      value: stats?.total_cars ?? 4123, 
+      suffix: "", 
+      label: "Figyelt autó", 
+      icon: Car 
+    },
+    { 
+      value: Math.floor((stats?.total_estimated_savings ?? 47000000) / 1000000), 
+      suffix: "+ millió Ft", 
+      label: "Becsült megtakarítás", 
+      icon: PiggyBank 
+    },
   ];
 
   return (
@@ -56,7 +74,7 @@ const SocialProof = () => {
           ref={ref}
           className="grid grid-cols-1 md:grid-cols-3 gap-12 max-w-4xl mx-auto"
         >
-          {stats.map((stat, index) => (
+          {statsData.map((stat, index) => (
             <StatItem
               key={stat.label}
               value={stat.value}
@@ -64,7 +82,7 @@ const SocialProof = () => {
               label={stat.label}
               icon={stat.icon}
               delay={index * 150}
-              isInView={isInView}
+              isInView={isInView && !loading}
             />
           ))}
         </div>
