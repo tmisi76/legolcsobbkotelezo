@@ -15,6 +15,7 @@ import DashboardCars from "./pages/DashboardCars";
 import DashboardSettings from "./pages/DashboardSettings";
 import CarDetailsPage from "./pages/CarDetailsPage";
 import AdminDashboard from "./pages/AdminDashboard";
+import AdminClients from "./pages/AdminClients";
 import AdminEmailPreview from "./pages/AdminEmailPreview";
 import NotFound from "./pages/NotFound";
 
@@ -90,6 +91,14 @@ const App = () => (
               element={
                 <AdminProtectedRoute>
                   <AdminDashboard />
+                </AdminProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/clients"
+              element={
+                <AdminProtectedRoute>
+                  <AdminClients />
                 </AdminProtectedRoute>
               }
             />

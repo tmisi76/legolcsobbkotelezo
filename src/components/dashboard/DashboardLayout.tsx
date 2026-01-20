@@ -1,6 +1,7 @@
 import { ReactNode, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAdminRole } from "@/hooks/useAdminRole";
 import { Button } from "@/components/ui/button";
 import { 
   Home, 
@@ -11,7 +12,8 @@ import {
   Menu, 
   X,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Users
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -20,17 +22,25 @@ interface DashboardLayoutProps {
   title: string;
 }
 
-const navItems = [
+const baseNavItems = [
   { path: "/dashboard", label: "Áttekintés", icon: Home },
   { path: "/dashboard/cars", label: "Autóim", icon: Car },
   { path: "/dashboard/settings", label: "Beállítások", icon: Settings },
 ];
 
+const adminNavItems = [
+  { path: "/admin/clients", label: "Potenciális szerződők", icon: Users },
+];
+
 export function DashboardLayout({ children, title }: DashboardLayoutProps) {
   const { profile, logout } = useAuth();
+  const { isAdmin } = useAdminRole();
   const location = useLocation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Combine base nav items with admin items if user is admin
+  const navItems = isAdmin ? [...baseNavItems, ...adminNavItems] : baseNavItems;
 
   const handleLogout = async () => {
     await logout();
