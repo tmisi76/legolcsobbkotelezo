@@ -13,6 +13,79 @@ interface SavingsRequest {
   currentAnnualFee: number;
 }
 
+interface ValidationError {
+  field: string;
+  message: string;
+}
+
+const validateInput = (data: unknown): { valid: true; data: SavingsRequest } | { valid: false; errors: ValidationError[] } => {
+  const errors: ValidationError[] = [];
+  
+  if (!data || typeof data !== 'object') {
+    return { valid: false, errors: [{ field: 'body', message: 'Invalid request body' }] };
+  }
+
+  const input = data as Record<string, unknown>;
+  
+  // Validate brand
+  if (typeof input.brand !== 'string' || input.brand.trim().length === 0) {
+    errors.push({ field: 'brand', message: 'Brand is required and must be a non-empty string' });
+  } else if (input.brand.length > 100) {
+    errors.push({ field: 'brand', message: 'Brand must be less than 100 characters' });
+  }
+
+  // Validate model
+  if (typeof input.model !== 'string' || input.model.trim().length === 0) {
+    errors.push({ field: 'model', message: 'Model is required and must be a non-empty string' });
+  } else if (input.model.length > 100) {
+    errors.push({ field: 'model', message: 'Model must be less than 100 characters' });
+  }
+
+  // Validate year
+  const currentYear = new Date().getFullYear();
+  if (typeof input.year !== 'number' || !Number.isInteger(input.year)) {
+    errors.push({ field: 'year', message: 'Year must be an integer' });
+  } else if (input.year < 1970 || input.year > currentYear + 1) {
+    errors.push({ field: 'year', message: `Year must be between 1970 and ${currentYear + 1}` });
+  }
+
+  // Validate enginePowerKw (optional, can be null)
+  if (input.enginePowerKw !== null && input.enginePowerKw !== undefined) {
+    if (typeof input.enginePowerKw !== 'number' || !Number.isInteger(input.enginePowerKw)) {
+      errors.push({ field: 'enginePowerKw', message: 'Engine power must be an integer or null' });
+    } else if (input.enginePowerKw < 1 || input.enginePowerKw > 1000) {
+      errors.push({ field: 'enginePowerKw', message: 'Engine power must be between 1 and 1000 kW' });
+    }
+  }
+
+  // Validate currentAnnualFee
+  if (typeof input.currentAnnualFee !== 'number' || !Number.isInteger(input.currentAnnualFee)) {
+    errors.push({ field: 'currentAnnualFee', message: 'Current annual fee must be an integer' });
+  } else if (input.currentAnnualFee < 1000 || input.currentAnnualFee > 10000000) {
+    errors.push({ field: 'currentAnnualFee', message: 'Current annual fee must be between 1,000 and 10,000,000 HUF' });
+  }
+
+  if (errors.length > 0) {
+    return { valid: false, errors };
+  }
+
+  return {
+    valid: true,
+    data: {
+      brand: (input.brand as string).trim(),
+      model: (input.model as string).trim(),
+      year: input.year as number,
+      enginePowerKw: input.enginePowerKw as number | null,
+      currentAnnualFee: input.currentAnnualFee as number,
+    }
+  };
+};
+
+// Sanitize string for prompt to prevent injection
+const sanitizeForPrompt = (str: string): string => {
+  return str.replace(/[<>{}[\]\\]/g, '').substring(0, 100);
+};
+
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -25,15 +98,38 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Service configuration error");
     }
 
-    const { brand, model, year, enginePowerKw, currentAnnualFee }: SavingsRequest = await req.json();
+    // Parse and validate input
+    let requestBody: unknown;
+    try {
+      requestBody = await req.json();
+    } catch {
+      return new Response(
+        JSON.stringify({ errorCode: 'INVALID_JSON', message: 'Invalid JSON in request body' }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
-    console.log(`Estimating savings for ${brand} ${model} ${year}`);
+    const validation = validateInput(requestBody);
+    if (!validation.valid) {
+      return new Response(
+        JSON.stringify({ errorCode: 'INVALID_INPUT', errors: validation.errors }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const { brand, model, year, enginePowerKw, currentAnnualFee } = validation.data;
+
+    // Sanitize strings before using in prompt
+    const safeBrand = sanitizeForPrompt(brand);
+    const safeModel = sanitizeForPrompt(model);
+
+    console.log(`Estimating savings for ${safeBrand} ${safeModel} ${year}`);
 
     const prompt = `Based on Hungarian car insurance market data and trends, estimate potential annual savings for switching car insurance.
 
 Car details:
-- Brand: ${brand}
-- Model: ${model}
+- Brand: ${safeBrand}
+- Model: ${safeModel}
 - Year: ${year}
 - Engine power: ${enginePowerKw ? `${enginePowerKw} kW` : 'Unknown'}
 - Current annual fee: ${currentAnnualFee.toLocaleString('hu-HU')} HUF
@@ -131,7 +227,6 @@ Provide a realistic savings estimate. Typical savings range is 10-25% of current
     const toolCall = aiResponse.choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall || toolCall.function.name !== "estimate_savings") {
       // Fallback to simple calculation
-      const defaultPercent = 15 + Math.random() * 10; // 15-25%
       return new Response(
         JSON.stringify({
           savingsPercentMin: 12,
@@ -152,7 +247,7 @@ Provide a realistic savings estimate. Typical savings range is 10-25% of current
       JSON.stringify(estimate),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[estimate-savings] Function error:", error);
     return new Response(
       JSON.stringify({ errorCode: 'INTERNAL_ERROR' }),
