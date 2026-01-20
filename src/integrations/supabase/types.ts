@@ -55,6 +55,7 @@ export type Database = {
           notes: string | null
           payment_frequency: string | null
           payment_method: string | null
+          processing_status: string | null
           updated_at: string
           user_id: string
           year: number
@@ -75,6 +76,7 @@ export type Database = {
           notes?: string | null
           payment_frequency?: string | null
           payment_method?: string | null
+          processing_status?: string | null
           updated_at?: string
           user_id: string
           year: number
@@ -95,6 +97,7 @@ export type Database = {
           notes?: string | null
           payment_frequency?: string | null
           payment_method?: string | null
+          processing_status?: string | null
           updated_at?: string
           user_id?: string
           year?: number
