@@ -134,6 +134,10 @@ export default function DashboardCars() {
         license_plate: data.license_plate ?? null,
         notes: data.notes ?? null,
         document_url: documentUrl,
+        payment_method: data.payment_method ?? null,
+        has_child_under_18: data.has_child_under_18=== "yes",
+        accepts_email_only: data.accepts_email_only === "yes",
+        payment_frequency: data.payment_frequency ?? null,
       };
 
       if (editingCar) {
