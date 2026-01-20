@@ -44,6 +44,7 @@ export type Database = {
           brand: string
           created_at: string
           current_annual_fee: number | null
+          document_url: string | null
           engine_power_kw: number | null
           id: string
           license_plate: string | null
@@ -59,6 +60,7 @@ export type Database = {
           brand: string
           created_at?: string
           current_annual_fee?: number | null
+          document_url?: string | null
           engine_power_kw?: number | null
           id?: string
           license_plate?: string | null
@@ -74,6 +76,7 @@ export type Database = {
           brand?: string
           created_at?: string
           current_annual_fee?: number | null
+          document_url?: string | null
           engine_power_kw?: number | null
           id?: string
           license_plate?: string | null

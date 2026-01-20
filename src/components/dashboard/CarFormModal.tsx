@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
 import { hu } from "date-fns/locale";
-import { CalendarIcon, Loader2, ArrowLeft } from "lucide-react";
+import { CalendarIcon, Loader2, ArrowLeft, Upload, FileText, X, Image as ImageIcon } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -33,8 +33,13 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 import { Car } from "@/types/database";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 const currentYear = new Date().getFullYear();
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const ACCEPTED_FILE_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
 
 const carFormSchema = z.object({
   nickname: z
@@ -100,11 +105,15 @@ const carFormSchema = z.object({
 
 type CarFormValues = z.infer<typeof carFormSchema>;
 
+export interface CarFormSubmitData extends CarFormValues {
+  documentFile?: File | null;
+}
+
 interface CarFormModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   car?: Car | null;
-  onSubmit: (data: CarFormValues) => Promise<void>;
+  onSubmit: (data: CarFormSubmitData) => Promise<void>;
   isLoading?: boolean;
 }
 
@@ -117,6 +126,10 @@ export function CarFormModal({
 }: CarFormModalProps) {
   const isEditing = !!car;
   const [step, setStep] = useState(1);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<CarFormValues>({
     resolver: zodResolver(carFormSchema),
@@ -172,62 +185,171 @@ export function CarFormModal({
       });
     }
     setStep(1);
+    setSelectedFile(null);
+    setFileError(null);
   }, [car, form, open]);
 
   const handleNext = async () => {
-    const step1Fields = ["nickname", "brand", "model", "year", "anniversary_date"] as const;
-    const isValid = await form.trigger(step1Fields);
-    if (isValid) {
-      setStep(2);
+    if (step === 1) {
+      const step1Fields = ["nickname", "brand", "model", "year", "anniversary_date"] as const;
+      const isValid = await form.trigger(step1Fields);
+      if (isValid) {
+        setStep(2);
+      }
+    } else if (step === 2) {
+      const step2Fields = ["payment_method", "has_child_under_18", "accepts_email_only", "payment_frequency"] as const;
+      const isValid = await form.trigger(step2Fields);
+      if (isValid) {
+        setStep(3);
+      }
     }
   };
 
   const handleBack = () => {
-    setStep(1);
+    if (step > 1) {
+      setStep(step - 1);
+    }
+  };
+
+  const validateFile = (file: File): string | null => {
+    if (!ACCEPTED_FILE_TYPES.includes(file.type)) {
+      return "Csak JPG, PNG, WebP vagy PDF fájl tölthető fel";
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      return "A fájl mérete maximum 10MB lehet";
+    }
+    return null;
+  };
+
+  const handleFileSelect = (file: File) => {
+    const error = validateFile(file);
+    if (error) {
+      setFileError(error);
+      setSelectedFile(null);
+    } else {
+      setFileError(null);
+      setSelectedFile(file);
+    }
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleFileSelect(file);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      handleFileSelect(file);
+    }
+  };
+
+  const handleRemoveFile = () => {
+    setSelectedFile(null);
+    setFileError(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
   const handleSubmit = async (data: CarFormValues) => {
-    await onSubmit(data);
+    await onSubmit({ ...data, documentFile: selectedFile });
+  };
+
+  const handleSkipDocument = async () => {
+    const data = form.getValues();
+    await onSubmit({ ...data, documentFile: null });
   };
 
   const handleOpenChange = (newOpen: boolean) => {
     if (!newOpen) {
       setStep(1);
+      setSelectedFile(null);
+      setFileError(null);
     }
     onOpenChange(newOpen);
+  };
+
+  const getFileIcon = () => {
+    if (!selectedFile) return null;
+    if (selectedFile.type === "application/pdf") {
+      return <FileText className="w-8 h-8 text-red-500" />;
+    }
+    return <ImageIcon className="w-8 h-8 text-blue-500" />;
+  };
+
+  const getStepTitle = () => {
+    if (isEditing) return "Autó szerkesztése";
+    switch (step) {
+      case 1:
+        return "Új autó hozzáadása";
+      case 2:
+        return "Biztosítási preferenciák";
+      case 3:
+        return "Dokumentum feltöltése";
+      default:
+        return "Új autó hozzáadása";
+    }
+  };
+
+  const getStepDescription = () => {
+    if (isEditing) return "Módosítsd az autó adatait";
+    switch (step) {
+      case 1:
+        return "Add meg az autód adatait, hogy emlékeztethessünk a biztosítás lejártáról";
+      case 2:
+        return "Segíts nekünk megtalálni a legjobb ajánlatot";
+      case 3:
+        return "Töltsd fel a jelenlegi biztosítód díjértesítő levelét vagy a kötvény fotóját";
+      default:
+        return "";
+    }
   };
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>
-            {isEditing ? "Autó szerkesztése" : step === 1 ? "Új autó hozzáadása" : "Biztosítási preferenciák"}
-          </DialogTitle>
-          <DialogDescription>
-            {isEditing
-              ? "Módosítsd az autó adatait"
-              : step === 1 
-                ? "Add meg az autód adatait, hogy emlékeztethessünk a biztosítás lejártáról"
-                : "Segíts nekünk megtalálni a legjobb ajánlatot"}
-          </DialogDescription>
+          <DialogTitle>{getStepTitle()}</DialogTitle>
+          <DialogDescription>{getStepDescription()}</DialogDescription>
         </DialogHeader>
 
         {/* Step indicator */}
         {!isEditing && (
           <div className="flex items-center gap-2 mb-2">
             <div className={cn(
-              "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium",
+              "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors",
               step >= 1 ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
             )}>
               1
             </div>
-            <div className={cn("flex-1 h-1 rounded", step >= 2 ? "bg-primary" : "bg-muted")} />
+            <div className={cn("flex-1 h-1 rounded transition-colors", step >= 2 ? "bg-primary" : "bg-muted")} />
             <div className={cn(
-              "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium",
+              "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors",
               step >= 2 ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
             )}>
               2
+            </div>
+            <div className={cn("flex-1 h-1 rounded transition-colors", step >= 3 ? "bg-primary" : "bg-muted")} />
+            <div className={cn(
+              "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors",
+              step >= 3 ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+            )}>
+              3
             </div>
           </div>
         )}
@@ -581,6 +703,87 @@ export function CarFormModal({
               </>
             )}
 
+            {step === 3 && (
+              <div className="space-y-4">
+                {/* File upload area */}
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  className={cn(
+                    "border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors",
+                    isDragging
+                      ? "border-primary bg-primary/5"
+                      : "border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/50",
+                    selectedFile && "border-primary bg-primary/5"
+                  )}
+                >
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".jpg,.jpeg,.png,.webp,.pdf"
+                    onChange={handleFileInputChange}
+                    className="hidden"
+                  />
+                  
+                  {selectedFile ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-center">
+                        {getFileIcon()}
+                      </div>
+                      <div className="space-y-1">
+                        <p className="font-medium text-sm truncate max-w-[250px] mx-auto">
+                          {selectedFile.name}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRemoveFile();
+                        }}
+                      >
+                        <X className="w-4 h-4 mr-2" />
+                        Eltávolítás
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-center">
+                        <Upload className="w-10 h-10 text-muted-foreground" />
+                      </div>
+                      <div className="space-y-1">
+                        <p className="font-medium">
+                          Húzd ide a fájlt vagy kattints
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          JPG, PNG, WebP vagy PDF - max 10MB
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {fileError && (
+                  <p className="text-sm text-destructive">{fileError}</p>
+                )}
+
+                {/* Tip */}
+                <div className="bg-muted/50 rounded-lg p-4">
+                  <p className="text-sm text-muted-foreground">
+                    💡 <strong>Tipp:</strong> A díjértesítőt megtalálod a postaládádban vagy az emailjeid között. 
+                    A kötvényt is elfogadjuk, ha az tartalmazza a jelenlegi díjat.
+                  </p>
+                </div>
+              </div>
+            )}
+
             <div className="flex gap-3 pt-4">
               {step === 1 ? (
                 <>
@@ -604,7 +807,7 @@ export function CarFormModal({
                     </Button>
                   )}
                 </>
-              ) : (
+              ) : step === 2 ? (
                 <>
                   <Button
                     type="button"
@@ -615,6 +818,29 @@ export function CarFormModal({
                   >
                     <ArrowLeft className="w-4 h-4 mr-2" />
                     Vissza
+                  </Button>
+                  <Button type="button" className="flex-1" onClick={handleNext}>
+                    Tovább
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleBack}
+                    disabled={isLoading}
+                  >
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Vissza
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={handleSkipDocument}
+                    disabled={isLoading}
+                  >
+                    Kihagyom
                   </Button>
                   <Button type="submit" className="flex-1" disabled={isLoading}>
                     {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
