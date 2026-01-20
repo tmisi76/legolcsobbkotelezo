@@ -104,12 +104,8 @@ export default function DashboardCars() {
       throw new Error('Nem sikerült feltölteni a dokumentumot');
     }
     
-    // Get the public URL
-    const { data: { publicUrl } } = supabase.storage
-      .from('insurance-documents')
-      .getPublicUrl(data.path);
-    
-    return publicUrl;
+    // Return just the file path (not full URL) for private bucket
+    return data.path;
   };
 
   const handleFormSubmit = async (data: CarFormSubmitData) => {
