@@ -19,11 +19,13 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Search, Car, Calendar, User, Mail } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Loader2, Search, Car, Calendar, User, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { format, differenceInDays, parseISO } from "date-fns";
 import { hu } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { CarDetailsDialog } from "@/components/admin/CarDetailsDialog";
 
 interface CarWithUser {
   id: string;
@@ -33,14 +35,21 @@ interface CarWithUser {
   year: number;
   anniversary_date: string;
   license_plate: string | null;
+  engine_power_kw: number | null;
   processing_status: string | null;
   current_annual_fee: number | null;
+  payment_method: string | null;
+  payment_frequency: string | null;
+  has_child_under_18: boolean | null;
+  accepts_email_only: boolean | null;
+  notes: string | null;
+  document_url: string | null;
+  created_at: string;
   user_id: string;
   profiles: {
     full_name: string;
     phone: string | null;
   } | null;
-  user_email?: string;
 }
 
 export default function AdminClients() {
@@ -49,6 +58,7 @@ export default function AdminClients() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "processed">("all");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [selectedCar, setSelectedCar] = useState<CarWithUser | null>(null);
 
   useEffect(() => {
     fetchCars();
@@ -69,8 +79,16 @@ export default function AdminClients() {
           year,
           anniversary_date,
           license_plate,
+          engine_power_kw,
           processing_status,
           current_annual_fee,
+          payment_method,
+          payment_frequency,
+          has_child_under_18,
+          accepts_email_only,
+          notes,
+          document_url,
+          created_at,
           user_id,
           profiles!cars_user_id_fkey (
             full_name,
@@ -85,16 +103,7 @@ export default function AdminClients() {
         return;
       }
 
-      // Fetch user emails separately using service role or admin context
-      const userIds = [...new Set(carsData?.map(c => c.user_id) || [])];
-      
-      // Get emails from profiles table if available, or we'll show "N/A"
-      const carsWithEmail = carsData?.map(car => ({
-        ...car,
-        user_email: undefined, // Email will be fetched separately if needed
-      })) || [];
-
-      setCars(carsWithEmail);
+      setCars(carsData || []);
     } catch (error) {
       console.error("Error:", error);
       toast.error("Hiba történt az adatok betöltésekor");
@@ -299,6 +308,7 @@ export default function AdminClients() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-10"></TableHead>
                       <TableHead>Tulajdonos</TableHead>
                       <TableHead>Autó</TableHead>
                       <TableHead>Rendszám</TableHead>
@@ -316,6 +326,16 @@ export default function AdminClients() {
                       
                       return (
                         <TableRow key={car.id}>
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setSelectedCar(car)}
+                              title="Részletek megtekintése"
+                            >
+                              <Eye className="w-4 h-4 text-muted-foreground hover:text-primary" />
+                            </Button>
+                          </TableCell>
                           <TableCell>
                             <div className="flex flex-col">
                               <span className="font-medium">
@@ -398,6 +418,12 @@ export default function AdminClients() {
           </CardContent>
         </Card>
       </div>
+
+      <CarDetailsDialog
+        car={selectedCar}
+        open={!!selectedCar}
+        onOpenChange={(open) => !open && setSelectedCar(null)}
+      />
     </DashboardLayout>
   );
 }
