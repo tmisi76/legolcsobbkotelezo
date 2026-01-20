@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -16,9 +17,11 @@ import {
   MessageSquare,
   ExternalLink,
   Phone,
-  Mail,
+  Loader2,
 } from "lucide-react";
 import { formatHungarianDate, formatHungarianNumber, getDaysUntilAnniversary } from "@/lib/database";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface CarWithUser {
   id: string;
@@ -91,7 +94,20 @@ const getPaymentFrequencyLabel = (frequency: string | null) => {
   }
 };
 
+// Extract file path from document_url (handles both full URLs and paths)
+const getFilePath = (documentUrl: string): string => {
+  // If it's already just a path (e.g., "user_id/filename.pdf")
+  if (!documentUrl.startsWith('http')) {
+    return documentUrl;
+  }
+  // Extract path from full URL
+  const match = documentUrl.match(/insurance-documents\/(.+)$/);
+  return match ? match[1] : documentUrl;
+};
+
 export function CarDetailsDialog({ car, open, onOpenChange }: CarDetailsDialogProps) {
+  const [isLoadingDocument, setIsLoadingDocument] = useState(false);
+  
   if (!car) return null;
 
   const daysUntil = getDaysUntilAnniversary(car.anniversary_date);
@@ -99,9 +115,32 @@ export function CarDetailsDialog({ car, open, onOpenChange }: CarDetailsDialogPr
     ? Math.round(car.current_annual_fee * 0.18)
     : null;
 
-  const openDocument = () => {
-    if (car.document_url) {
-      window.open(car.document_url, "_blank");
+  const openDocument = async () => {
+    if (!car.document_url) return;
+    
+    setIsLoadingDocument(true);
+    try {
+      const filePath = getFilePath(car.document_url);
+      
+      // Generate signed URL (valid for 1 hour)
+      const { data, error } = await supabase.storage
+        .from('insurance-documents')
+        .createSignedUrl(filePath, 3600);
+      
+      if (error) {
+        console.error('Error creating signed URL:', error);
+        toast.error("Nem sikerült megnyitni a dokumentumot");
+        return;
+      }
+      
+      if (data?.signedUrl) {
+        window.open(data.signedUrl, '_blank');
+      }
+    } catch (error) {
+      console.error('Error opening document:', error);
+      toast.error("Hiba történt a dokumentum megnyitásakor");
+    } finally {
+      setIsLoadingDocument(false);
     }
   };
 
@@ -269,8 +308,17 @@ export function CarDetailsDialog({ car, open, onOpenChange }: CarDetailsDialogPr
             </div>
             <div className="pl-6">
               {car.document_url ? (
-                <Button variant="outline" onClick={openDocument} className="gap-2">
-                  <ExternalLink className="w-4 h-4" />
+                <Button 
+                  variant="outline" 
+                  onClick={openDocument} 
+                  className="gap-2"
+                  disabled={isLoadingDocument}
+                >
+                  {isLoadingDocument ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <ExternalLink className="w-4 h-4" />
+                  )}
                   Dokumentum megtekintése
                 </Button>
               ) : (
