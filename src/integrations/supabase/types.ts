@@ -40,49 +40,61 @@ export type Database = {
       }
       cars: {
         Row: {
+          accepts_email_only: boolean | null
           anniversary_date: string
           brand: string
           created_at: string
           current_annual_fee: number | null
           document_url: string | null
           engine_power_kw: number | null
+          has_child_under_18: boolean | null
           id: string
           license_plate: string | null
           model: string
           nickname: string
           notes: string | null
+          payment_frequency: string | null
+          payment_method: string | null
           updated_at: string
           user_id: string
           year: number
         }
         Insert: {
+          accepts_email_only?: boolean | null
           anniversary_date: string
           brand: string
           created_at?: string
           current_annual_fee?: number | null
           document_url?: string | null
           engine_power_kw?: number | null
+          has_child_under_18?: boolean | null
           id?: string
           license_plate?: string | null
           model: string
           nickname: string
           notes?: string | null
+          payment_frequency?: string | null
+          payment_method?: string | null
           updated_at?: string
           user_id: string
           year: number
         }
         Update: {
+          accepts_email_only?: boolean | null
           anniversary_date?: string
           brand?: string
           created_at?: string
           current_annual_fee?: number | null
           document_url?: string | null
           engine_power_kw?: number | null
+          has_child_under_18?: boolean | null
           id?: string
           license_plate?: string | null
           model?: string
           nickname?: string
           notes?: string | null
+          payment_frequency?: string | null
+          payment_method?: string | null
           updated_at?: string
           user_id?: string
           year?: number
