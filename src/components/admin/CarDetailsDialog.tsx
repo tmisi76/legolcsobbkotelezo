@@ -8,6 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
 import {
   User,
   Car,
@@ -18,6 +19,8 @@ import {
   ExternalLink,
   Phone,
   Loader2,
+  Save,
+  Mail,
 } from "lucide-react";
 import { formatHungarianDate, formatHungarianNumber, getDaysUntilAnniversary } from "@/lib/database";
 import { supabase } from "@/integrations/supabase/client";
@@ -41,10 +44,19 @@ interface CarWithUser {
   document_url: string | null;
   processing_status: string | null;
   created_at: string;
+  user_id: string;
   profiles: {
     full_name: string;
     phone: string | null;
   } | null;
+  user_email?: string;
+}
+
+interface CarDetailsDialogProps {
+  car: CarWithUser | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onNotesUpdate?: (carId: string, notes: string) => void;
 }
 
 interface CarDetailsDialogProps {
@@ -56,12 +68,12 @@ interface CarDetailsDialogProps {
 const getStatusBadge = (status: string | null) => {
   switch (status) {
     case "pending":
-      return <Badge variant="secondary">Függőben</Badge>;
+      return <Badge className="bg-red-500 hover:bg-red-600">Feldolgozásra vár</Badge>;
     case "in_progress":
       return <Badge className="bg-blue-500 hover:bg-blue-600">Folyamatban</Badge>;
-    case "quoted":
+    case "offer_sent":
       return <Badge className="bg-purple-500 hover:bg-purple-600">Ajánlat küldve</Badge>;
-    case "completed":
+    case "closed":
       return <Badge className="bg-green-500 hover:bg-green-600">Lezárva</Badge>;
     default:
       return <Badge variant="outline">Ismeretlen</Badge>;
@@ -105,8 +117,17 @@ const getFilePath = (documentUrl: string): string => {
   return match ? match[1] : documentUrl;
 };
 
-export function CarDetailsDialog({ car, open, onOpenChange }: CarDetailsDialogProps) {
+export function CarDetailsDialog({ car, open, onOpenChange, onNotesUpdate }: CarDetailsDialogProps) {
   const [isLoadingDocument, setIsLoadingDocument] = useState(false);
+  const [adminNotes, setAdminNotes] = useState(car?.notes || "");
+  const [isSavingNotes, setIsSavingNotes] = useState(false);
+  
+  // Update local notes when car changes
+  useState(() => {
+    if (car) {
+      setAdminNotes(car.notes || "");
+    }
+  });
   
   if (!car) return null;
 
@@ -114,6 +135,26 @@ export function CarDetailsDialog({ car, open, onOpenChange }: CarDetailsDialogPr
   const estimatedSavings = car.current_annual_fee
     ? Math.round(car.current_annual_fee * 0.18)
     : null;
+
+  const saveNotes = async () => {
+    setIsSavingNotes(true);
+    try {
+      const { error } = await supabase
+        .from('cars')
+        .update({ notes: adminNotes })
+        .eq('id', car.id);
+      
+      if (error) throw error;
+      
+      toast.success("Megjegyzés mentve!");
+      onNotesUpdate?.(car.id, adminNotes);
+    } catch (error) {
+      console.error('Error saving notes:', error);
+      toast.error("Hiba a megjegyzés mentésekor");
+    } finally {
+      setIsSavingNotes(false);
+    }
+  };
 
   const openDocument = async () => {
     if (!car.document_url) return;
@@ -178,6 +219,21 @@ export function CarDetailsDialog({ car, open, onOpenChange }: CarDetailsDialogPr
                       <Phone className="w-3 h-3" />
                       <a href={`tel:${car.profiles.phone}`} className="hover:underline">
                         {car.profiles.phone}
+                      </a>
+                    </>
+                  ) : (
+                    "Nincs megadva"
+                  )}
+                </p>
+              </div>
+              <div className="md:col-span-2">
+                <span className="text-muted-foreground text-sm">Email</span>
+                <p className="font-medium flex items-center gap-1">
+                  {car.user_email ? (
+                    <>
+                      <Mail className="w-3 h-3" />
+                      <a href={`mailto:${car.user_email}`} className="hover:underline">
+                        {car.user_email}
                       </a>
                     </>
                   ) : (
@@ -327,25 +383,38 @@ export function CarDetailsDialog({ car, open, onOpenChange }: CarDetailsDialogPr
             </div>
           </section>
 
-          {/* Megjegyzések */}
-          {car.notes && (
-            <>
-              <Separator />
-              <section>
-                <div className="flex items-center gap-2 mb-3">
-                  <MessageSquare className="w-4 h-4 text-primary" />
-                  <h3 className="font-semibold text-sm uppercase tracking-wide">
-                    Megjegyzések
-                  </h3>
-                </div>
-                <div className="pl-6">
-                  <p className="text-sm bg-muted p-3 rounded-md whitespace-pre-wrap">
-                    {car.notes}
-                  </p>
-                </div>
-              </section>
-            </>
-          )}
+          {/* Admin megjegyzések - szerkeszthető */}
+          <Separator />
+          <section>
+            <div className="flex items-center gap-2 mb-3">
+              <MessageSquare className="w-4 h-4 text-primary" />
+              <h3 className="font-semibold text-sm uppercase tracking-wide">
+                Admin megjegyzések
+              </h3>
+            </div>
+            <div className="pl-6 space-y-3">
+              <Textarea
+                placeholder="Írj megjegyzést az ügyfélről (pl. mit beszéltetek, hol tart az ügy)..."
+                value={adminNotes}
+                onChange={(e) => setAdminNotes(e.target.value)}
+                rows={3}
+                className="resize-none"
+              />
+              <Button 
+                onClick={saveNotes} 
+                disabled={isSavingNotes}
+                size="sm"
+                className="gap-2"
+              >
+                {isSavingNotes ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4" />
+                )}
+                Megjegyzés mentése
+              </Button>
+            </div>
+          </section>
 
           {/* Regisztráció dátuma */}
           <div className="text-xs text-muted-foreground text-right pt-2">
