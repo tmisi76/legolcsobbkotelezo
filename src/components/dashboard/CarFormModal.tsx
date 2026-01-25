@@ -314,7 +314,7 @@ export function CarFormModal({
       case 2:
         return "Segíts nekünk megtalálni a legjobb ajánlatot";
       case 3:
-        return "Töltsd fel a jelenlegi biztosítód díjértesítő levelét vagy a kötvény fotóját";
+        return "Töltsd fel a jelenlegi biztosítód díjértesítő levelét vagy a kötvény fotóját!";
       default:
         return "";
     }
@@ -564,7 +564,7 @@ export function CarFormModal({
                   name="payment_method"
                   render={({ field }) => (
                     <FormItem className="space-y-3">
-                      <FormLabel>Hogyan fizet a biztosításért? *</FormLabel>
+                      <FormLabel>Hogyan fizetnél az új biztosításért? *</FormLabel>
                       <FormControl>
                         <RadioGroup
                           onValueChange={field.onChange}
@@ -607,7 +607,7 @@ export function CarFormModal({
                   name="has_child_under_18"
                   render={({ field }) => (
                     <FormItem className="space-y-3">
-                      <FormLabel>Van 18 év alatti gyermeke? *</FormLabel>
+                      <FormLabel>Van 18 év alatti gyermeked? *</FormLabel>
                       <FormControl>
                         <RadioGroup
                           onValueChange={field.onChange}
@@ -638,7 +638,7 @@ export function CarFormModal({
                   name="accepts_email_only"
                   render={({ field }) => (
                     <FormItem className="space-y-3">
-                      <FormLabel>Elfogadja, hogy a biztosító emailben értesíti (nem küld postai levelet)? *</FormLabel>
+                      <FormLabel>Elfogadnád, hogy a biztosító emailben értesítsen (ne küldjön postai levelet)? *</FormLabel>
                       <FormControl>
                         <RadioGroup
                           onValueChange={field.onChange}
@@ -669,7 +669,7 @@ export function CarFormModal({
                   name="payment_frequency"
                   render={({ field }) => (
                     <FormItem className="space-y-3">
-                      <FormLabel>Milyen gyakoriságú fizetést választ? *</FormLabel>
+                      <FormLabel>Milyen gyakoriságú fizetést szeretnél? *</FormLabel>
                       <FormControl>
                         <RadioGroup
                           onValueChange={field.onChange}
