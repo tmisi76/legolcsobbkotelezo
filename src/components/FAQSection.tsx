@@ -16,22 +16,22 @@ const faqs = [
   {
     question: "Hogyan spórolhatok a kötelezőn?",
     answer:
-      "Minden év november 1. és december 31. között van lehetőség biztosítót váltani. Ilyenkor az új biztosítók kedvező ajánlatokkal csábítják az ügyfeleket. Mi 50 nappal a lejárat előtt emlékeztetünk, hogy legyen időd összehasonlítani az ajánlatokat és kiválasztani a legjobbat.",
+      "Minden évben a biztosítási évforduló előtt 60 és 30 nap között van lehetőség biztosítót váltani. Ilyenkor az új biztosítók kedvező ajánlatokkal csábítják az ügyfeleket. Mi 50 nappal az évforduló előtt emlékeztetünk, hogy legyen időd összehasonlítani az ajánlatokat és kiválasztani a legjobbat.",
   },
   {
     question: "Biztonságban vannak az adataim?",
     answer:
-      "Igen, GDPR kompatibilis adatkezelést alkalmazunk. Az adataidat titkosítva tároljuk és harmadik félnek csak az Ön kifejezett beleegyezésével adjuk át. Bármikor kérheted adataid törlését.",
+      "Igen, GDPR kompatibilis adatkezelést alkalmazunk. Az adataidat titkosítva tároljuk és harmadik félnek csak a te kifejezett beleegyezéseddel adjuk át. Bármikor kérheted adataid törlését.",
   },
   {
     question: "Mi történik ha megadom a telefonszámom?",
     answer:
-      "Személyesen felhívunk a váltási időszak előtt a legjobb, személyre szabott biztosítási ajánlatokkal. Nem spam hívásokról van szó - csak egyszer keresünk évente, az emlékeztető időszakban. A telefonszám megadása teljesen opcionális.",
+      "Személyesen felhívunk az évforduló előtti lehetséges váltási időszakban a legjobb, személyre szabott biztosítási ajánlatokkal. Nem spam hívásokról van szó - csak egyszer keresünk évente. A telefonszám megadása teljesen opcionális.",
   },
   {
     question: "Hány autót adhatok hozzá a fiókomhoz?",
     answer:
-      "Nincs korlátozás! Akár a család összes autóját hozzáadhatod egyetlen fiókhoz, és mindegyikről külön emlékeztetőt kapsz a megfelelő időpontban.",
+      "Nincs korlátozás! Korlátlan számú autót adhatsz hozzá, és mindegyikről külön emlékeztetőt kapsz a megfelelő időpontban.",
   },
 ];
 

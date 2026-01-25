@@ -11,6 +11,7 @@ import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import DashboardHome from "./pages/DashboardHome";
 import DashboardCars from "./pages/DashboardCars";
 import DashboardSettings from "./pages/DashboardSettings";
@@ -61,6 +62,10 @@ const App = () => (
                   <ForgotPassword />
                 </PublicOnlyRoute>
               }
+            />
+            <Route
+              path="/reset-password"
+              element={<ResetPassword />}
             />
             <Route
               path="/dashboard"
