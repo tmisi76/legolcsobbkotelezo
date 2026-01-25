@@ -50,26 +50,28 @@ export function calculateCarStatus(anniversaryDate: string | Date): CarStatus {
     };
   }
   
-  if (daysRemaining <= 30) {
+  // Under 30 days: switching period is over, can't switch anymore
+  if (daysRemaining < 30) {
     return {
-      status: "switching_period",
+      status: "attention",
       daysRemaining,
-      statusLabel: "Váltási időszak!",
+      statusLabel: "Váltási időszak lejárt",
       statusColor: "bg-warning",
       bgColor: "bg-warning/10",
       textColor: "text-warning",
-      canSwitch: true,
+      canSwitch: false,
       switchingPeriodStart,
       switchingPeriodEnd,
       progressPercent,
     };
   }
   
+  // 30-60 days: active switching period
   if (daysRemaining <= 60) {
     return {
-      status: "attention",
+      status: "switching_period",
       daysRemaining,
-      statusLabel: "Hamarosan lejár",
+      statusLabel: "Váltási időszak",
       statusColor: "bg-primary",
       bgColor: "bg-primary/10",
       textColor: "text-primary",
@@ -80,6 +82,7 @@ export function calculateCarStatus(anniversaryDate: string | Date): CarStatus {
     };
   }
   
+  // More than 60 days: safe
   return {
     status: "ok",
     daysRemaining,

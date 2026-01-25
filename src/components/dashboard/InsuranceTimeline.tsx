@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { format, differenceInDays } from "date-fns";
+import { format, differenceInDays, addDays } from "date-fns";
 import { hu } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { getTimelineMarkers } from "@/lib/carStatus";
@@ -31,43 +31,43 @@ export function InsuranceTimeline({ anniversaryDate }: InsuranceTimelineProps) {
       {
         date: markers.sixtyDaysBefore,
         label: "60 nap",
-        description: "Érdemes elkezdeni tájékozódni",
+        description: "Váltási időszak kezdete - emlékeztető",
         icon: <Clock className="w-4 h-4" />,
         isPast: today >= markers.sixtyDaysBefore,
         isCurrent: daysToAnniversary <= 60 && daysToAnniversary > 50,
-        color: "text-muted-foreground",
+        color: "text-primary",
       },
       {
         date: markers.fiftyDaysBefore,
         label: "50 nap",
-        description: "Első emlékeztetőnk",
+        description: "1. emlékeztető - váltásig még 20 nap",
         icon: <AlertTriangle className="w-4 h-4" />,
         isPast: today >= markers.fiftyDaysBefore,
-        isCurrent: daysToAnniversary <= 50 && daysToAnniversary > 30,
+        isCurrent: daysToAnniversary <= 50 && daysToAnniversary > 40,
         color: "text-primary",
+      },
+      {
+        date: addDays(markers.anniversary, -40),
+        label: "40 nap",
+        description: "2. emlékeztető - sürgős, váltásig még 10 nap",
+        icon: <AlertTriangle className="w-4 h-4" />,
+        isPast: today >= addDays(markers.anniversary, -40),
+        isCurrent: daysToAnniversary <= 40 && daysToAnniversary > 30,
+        color: "text-warning",
       },
       {
         date: markers.thirtyDaysBefore,
         label: "30 nap",
-        description: "Váltási időszak kezdete",
+        description: "Váltási időszak vége",
         icon: <AlertTriangle className="w-4 h-4" />,
         isPast: today >= markers.thirtyDaysBefore,
-        isCurrent: daysToAnniversary <= 30 && daysToAnniversary > 7,
-        color: "text-warning",
-      },
-      {
-        date: markers.sevenDaysBefore,
-        label: "7 nap",
-        description: "Sürgős! Utolsó figyelmeztetés",
-        icon: <AlertTriangle className="w-4 h-4" />,
-        isPast: today >= markers.sevenDaysBefore,
-        isCurrent: daysToAnniversary <= 7 && daysToAnniversary > 0,
+        isCurrent: daysToAnniversary <= 30 && daysToAnniversary > 0,
         color: "text-destructive",
       },
       {
         date: markers.anniversary,
         label: "Évforduló",
-        description: "Biztosítás lejárata",
+        description: "Biztosítás évfordulója",
         icon: <Calendar className="w-4 h-4" />,
         isPast: today >= markers.anniversary,
         isCurrent: daysToAnniversary === 0,
