@@ -20,7 +20,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, Search, Car, Calendar, User, Eye } from "lucide-react";
+import { Loader2, Search, Car, Calendar, User, Eye, Mail, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { format, differenceInDays, parseISO } from "date-fns";
 import { hu } from "date-fns/locale";
@@ -49,14 +49,20 @@ interface CarWithUser {
   profiles: {
     full_name: string;
     phone: string | null;
+    email?: string;
   } | null;
+  user_email?: string;
 }
+
+type StatusFilter = "all" | "pending" | "in_progress" | "offer_sent" | "closed";
+type DaysFilter = "all" | "60" | "50" | "40" | "30" | "outside";
 
 export default function AdminClients() {
   const [cars, setCars] = useState<CarWithUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "processed">("all");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [daysFilter, setDaysFilter] = useState<DaysFilter>("all");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [selectedCar, setSelectedCar] = useState<CarWithUser | null>(null);
 
@@ -103,7 +109,15 @@ export default function AdminClients() {
         return;
       }
 
-      setCars(carsData || []);
+      // Fetch user emails separately (from auth.users via admin API is not possible, 
+      // so we'll try to get it from profiles or display N/A)
+      // For now, we'll use a simple approach - in a real app you'd have emails in profiles
+      const carsWithEmail = (carsData || []).map(car => ({
+        ...car,
+        user_email: undefined, // Would need to be fetched from auth or stored in profiles
+      }));
+
+      setCars(carsWithEmail);
     } catch (error) {
       console.error("Error:", error);
       toast.error("Hiba történt az adatok betöltésekor");
@@ -132,11 +146,13 @@ export default function AdminClients() {
         )
       );
 
-      toast.success(
-        newStatus === "processed" 
-          ? "Feldolgozva státuszra állítva" 
-          : "Feldolgozásra vár státuszra állítva"
-      );
+      const statusLabels: Record<string, string> = {
+        pending: "Feldolgozásra vár",
+        in_progress: "Folyamatban",
+        offer_sent: "Ajánlat küldve",
+        closed: "Lezárva",
+      };
+      toast.success(`${statusLabels[newStatus] || newStatus} státuszra állítva`);
     } catch (error) {
       console.error("Error:", error);
       toast.error("Hiba történt");
@@ -173,6 +189,16 @@ export default function AdminClients() {
       if (statusFilter !== status) return false;
     }
 
+    // Days filter (switching period filter)
+    if (daysFilter !== "all") {
+      const daysUntil = getDaysUntilAnniversary(car.anniversary_date);
+      if (daysFilter === "60" && !(daysUntil <= 60 && daysUntil > 50)) return false;
+      if (daysFilter === "50" && !(daysUntil <= 50 && daysUntil > 40)) return false;
+      if (daysFilter === "40" && !(daysUntil <= 40 && daysUntil > 30)) return false;
+      if (daysFilter === "30" && !(daysUntil <= 30 && daysUntil >= 0)) return false;
+      if (daysFilter === "outside" && daysUntil <= 60 && daysUntil >= 0) return false;
+    }
+
     // Search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
@@ -183,6 +209,7 @@ export default function AdminClients() {
         car.license_plate,
         car.profiles?.full_name,
         car.profiles?.phone,
+        car.user_email,
       ].filter(Boolean).map(f => f?.toLowerCase());
       
       return searchableFields.some(field => field?.includes(query));
@@ -192,22 +219,24 @@ export default function AdminClients() {
   });
 
   const pendingCount = cars.filter(c => (c.processing_status || "pending") === "pending").length;
-  const processedCount = cars.filter(c => c.processing_status === "processed").length;
+  const inProgressCount = cars.filter(c => c.processing_status === "in_progress").length;
+  const offerSentCount = cars.filter(c => c.processing_status === "offer_sent").length;
+  const closedCount = cars.filter(c => c.processing_status === "closed").length;
 
   return (
     <DashboardLayout title="Potenciális szerződők">
       <div className="space-y-6">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <Card>
             <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-full bg-primary/10">
-                  <Car className="w-6 h-6 text-primary" />
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-full bg-primary/10">
+                  <Car className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Összes autó</p>
-                  <p className="text-2xl font-bold">{cars.length}</p>
+                  <p className="text-xs text-muted-foreground">Összes</p>
+                  <p className="text-xl font-bold">{cars.length}</p>
                 </div>
               </div>
             </CardContent>
@@ -215,13 +244,41 @@ export default function AdminClients() {
           
           <Card>
             <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-full bg-red-100">
-                  <Calendar className="w-6 h-6 text-red-600" />
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-full bg-red-100">
+                  <Clock className="w-5 h-5 text-red-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Feldolgozásra vár</p>
-                  <p className="text-2xl font-bold text-red-600">{pendingCount}</p>
+                  <p className="text-xs text-muted-foreground">Feldolgozásra vár</p>
+                  <p className="text-xl font-bold text-red-600">{pendingCount}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-full bg-blue-100">
+                  <Calendar className="w-5 h-5 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Folyamatban</p>
+                  <p className="text-xl font-bold text-blue-600">{inProgressCount}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-full bg-purple-100">
+                  <Mail className="w-5 h-5 text-purple-600" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Ajánlat küldve</p>
+                  <p className="text-xl font-bold text-purple-600">{offerSentCount}</p>
                 </div>
               </div>
             </CardContent>
@@ -229,13 +286,13 @@ export default function AdminClients() {
           
           <Card>
             <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-full bg-green-100">
-                  <User className="w-6 h-6 text-green-600" />
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-full bg-green-100">
+                  <User className="w-5 h-5 text-green-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Feldolgozva</p>
-                  <p className="text-2xl font-bold text-green-600">{processedCount}</p>
+                  <p className="text-xs text-muted-foreground">Lezárva</p>
+                  <p className="text-xl font-bold text-green-600">{closedCount}</p>
                 </div>
               </div>
             </CardContent>
@@ -248,36 +305,70 @@ export default function AdminClients() {
             <CardTitle className="text-lg">Szűrés és keresés</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Keresés név, autó, rendszám alapján..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Keresés név, email, autó, rendszám alapján..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
+                  <SelectTrigger className="w-full sm:w-[200px]">
+                    <SelectValue placeholder="Állapot szűrése" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Összes állapot</SelectItem>
+                    <SelectItem value="pending">
+                      <span className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-red-500" />
+                        Feldolgozásra vár
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="in_progress">
+                      <span className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-blue-500" />
+                        Folyamatban
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="offer_sent">
+                      <span className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-purple-500" />
+                        Ajánlat küldve
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="closed">
+                      <span className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-green-500" />
+                        Lezárva
+                      </span>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-              <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
-                <SelectTrigger className="w-full sm:w-[200px]">
-                  <SelectValue placeholder="Állapot szűrése" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Összes állapot</SelectItem>
-                  <SelectItem value="pending">
-                    <span className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-red-500" />
-                      Feldolgozásra vár
-                    </span>
-                  </SelectItem>
-                  <SelectItem value="processed">
-                    <span className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-green-500" />
-                      Feldolgozva
-                    </span>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex flex-wrap gap-2">
+                <span className="text-sm text-muted-foreground self-center mr-2">Évfordulóig:</span>
+                {[
+                  { value: "all", label: "Mind" },
+                  { value: "60", label: "60 nap" },
+                  { value: "50", label: "50 nap" },
+                  { value: "40", label: "40 nap" },
+                  { value: "30", label: "≤30 nap" },
+                  { value: "outside", label: "Időszakon kívül" },
+                ].map((option) => (
+                  <Button
+                    key={option.value}
+                    variant={daysFilter === option.value ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setDaysFilter(option.value as DaysFilter)}
+                  >
+                    {option.label}
+                  </Button>
+                ))}
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -310,11 +401,11 @@ export default function AdminClients() {
                     <TableRow>
                       <TableHead className="w-10"></TableHead>
                       <TableHead>Tulajdonos</TableHead>
+                      <TableHead>Email</TableHead>
                       <TableHead>Autó</TableHead>
                       <TableHead>Rendszám</TableHead>
                       <TableHead>Évforduló</TableHead>
-                      <TableHead>Hátralevő napok</TableHead>
-                      <TableHead>Díj</TableHead>
+                      <TableHead>Hátralevő</TableHead>
                       <TableHead className="text-right">Állapot</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -349,6 +440,11 @@ export default function AdminClients() {
                             </div>
                           </TableCell>
                           <TableCell>
+                            <span className="text-sm text-muted-foreground">
+                              {car.user_email || "-"}
+                            </span>
+                          </TableCell>
+                          <TableCell>
                             <div className="flex flex-col">
                               <span className="font-medium">{car.nickname}</span>
                               <span className="text-xs text-muted-foreground">
@@ -360,17 +456,12 @@ export default function AdminClients() {
                             {car.license_plate || "-"}
                           </TableCell>
                           <TableCell>
-                            {format(parseISO(car.anniversary_date), "yyyy. MM. dd.", { locale: hu })}
+                            {format(parseISO(car.anniversary_date), "MM. dd.", { locale: hu })}
                           </TableCell>
                           <TableCell>
                             <Badge className={cn("font-medium", urgencyColor)}>
                               {daysUntil} nap
                             </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {car.current_annual_fee 
-                              ? `${car.current_annual_fee.toLocaleString("hu-HU")} Ft`
-                              : "-"}
                           </TableCell>
                           <TableCell className="text-right">
                             <Select
@@ -380,10 +471,11 @@ export default function AdminClients() {
                             >
                               <SelectTrigger 
                                 className={cn(
-                                  "w-[180px]",
-                                  status === "pending"
-                                    ? "border-red-300 bg-red-50 text-red-700 hover:bg-red-100"
-                                    : "border-green-300 bg-green-50 text-green-700 hover:bg-green-100"
+                                  "w-[160px]",
+                                  status === "pending" && "border-red-300 bg-red-50 text-red-700",
+                                  status === "in_progress" && "border-blue-300 bg-blue-50 text-blue-700",
+                                  status === "offer_sent" && "border-purple-300 bg-purple-50 text-purple-700",
+                                  status === "closed" && "border-green-300 bg-green-50 text-green-700"
                                 )}
                               >
                                 {updatingId === car.id ? (
@@ -399,10 +491,22 @@ export default function AdminClients() {
                                     Feldolgozásra vár
                                   </span>
                                 </SelectItem>
-                                <SelectItem value="processed">
+                                <SelectItem value="in_progress">
+                                  <span className="flex items-center gap-2">
+                                    <span className="w-2 h-2 rounded-full bg-blue-500" />
+                                    Folyamatban
+                                  </span>
+                                </SelectItem>
+                                <SelectItem value="offer_sent">
+                                  <span className="flex items-center gap-2">
+                                    <span className="w-2 h-2 rounded-full bg-purple-500" />
+                                    Ajánlat küldve
+                                  </span>
+                                </SelectItem>
+                                <SelectItem value="closed">
                                   <span className="flex items-center gap-2">
                                     <span className="w-2 h-2 rounded-full bg-green-500" />
-                                    Feldolgozva
+                                    Lezárva
                                   </span>
                                 </SelectItem>
                               </SelectContent>
@@ -423,6 +527,12 @@ export default function AdminClients() {
         car={selectedCar}
         open={!!selectedCar}
         onOpenChange={(open) => !open && setSelectedCar(null)}
+        onNotesUpdate={(carId, notes) => {
+          setCars(prev => prev.map(c => c.id === carId ? { ...c, notes } : c));
+          if (selectedCar?.id === carId) {
+            setSelectedCar({ ...selectedCar, notes });
+          }
+        }}
       />
     </DashboardLayout>
   );
