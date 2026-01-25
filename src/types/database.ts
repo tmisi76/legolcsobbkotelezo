@@ -24,6 +24,12 @@ export interface Car {
   anniversary_date: string;
   license_plate: string | null;
   notes: string | null;
+  payment_method: string | null;
+  has_child_under_18: boolean | null;
+  accepts_email_only: boolean | null;
+  payment_frequency: string | null;
+  processing_status: string | null;
+  document_url: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -48,5 +54,8 @@ export interface AppStats {
 export type ProfileInsert = Omit<Profile, 'id' | 'created_at' | 'updated_at'>;
 export type ProfileUpdate = Partial<Omit<Profile, 'id' | 'user_id' | 'created_at' | 'updated_at'>>;
 
-export type CarInsert = Omit<Car, 'id' | 'created_at' | 'updated_at'>;
+export type CarInsert = Omit<Car, 'id' | 'created_at' | 'updated_at' | 'processing_status' | 'document_url'> & {
+  processing_status?: string | null;
+  document_url?: string | null;
+};
 export type CarUpdate = Partial<Omit<Car, 'id' | 'user_id' | 'created_at' | 'updated_at'>>;

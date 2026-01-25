@@ -94,7 +94,7 @@ export default function DashboardSettings() {
   // Notification settings state
   const [emailReminders, setEmailReminders] = useState(profile?.email_reminders_enabled ?? true);
   const [reminderDays, setReminderDays] = useState<string[]>(
-    (profile?.reminder_days || "50,30,7").split(",").map(d => d.trim())
+    (profile?.reminder_days || "60,50,40").split(",").map(d => d.trim())
   );
   const [wantsCallback, setWantsCallback] = useState(profile?.wants_callback ?? false);
 
@@ -102,7 +102,7 @@ export default function DashboardSettings() {
   useEffect(() => {
     if (profile) {
       setEmailReminders(profile.email_reminders_enabled);
-      setReminderDays((profile.reminder_days || "50,30,7").split(",").map(d => d.trim()));
+      setReminderDays((profile.reminder_days || "60,50,40").split(",").map(d => d.trim()));
       setWantsCallback(profile.wants_callback);
     }
   }, [profile]);
@@ -411,7 +411,7 @@ export default function DashboardSettings() {
               <div>
                 <p className="font-medium text-foreground">Email emlékeztetők</p>
                 <p className="text-sm text-muted-foreground">
-                  Értesítünk a biztosítás lejárati dátumáról
+                  Értesítünk a biztosítás évfordulójáról
                 </p>
               </div>
               <Switch
@@ -428,9 +428,9 @@ export default function DashboardSettings() {
                 </p>
                 <div className="space-y-2">
                   {[
-                    { value: "50", label: "50 nappal a lejárat előtt" },
-                    { value: "30", label: "30 nappal a lejárat előtt" },
-                    { value: "7", label: "7 nappal a lejárat előtt" },
+                    { value: "60", label: "60 nappal az évforduló előtt (váltási időszak kezdete)" },
+                    { value: "50", label: "50 nappal az évforduló előtt" },
+                    { value: "40", label: "40 nappal az évforduló előtt (sürgős)" },
                   ].map((option) => (
                     <div key={option.value} className="flex items-center gap-3">
                       <Checkbox
