@@ -162,10 +162,11 @@ export function CarFormModal({
         anniversary_date: new Date(car.anniversary_date),
         license_plate: car.license_plate,
         notes: car.notes,
-        payment_method: undefined,
-        has_child_under_18: undefined,
-        accepts_email_only: undefined,
-        payment_frequency: undefined,
+        // Preserve existing step 2 values when editing
+        payment_method: (car.payment_method as "bank_transfer" | "card" | "check") || "bank_transfer",
+        has_child_under_18: car.has_child_under_18 ? "yes" : "no",
+        accepts_email_only: car.accepts_email_only ? "yes" : "no",
+        payment_frequency: (car.payment_frequency as "quarterly" | "semi_annual" | "annual") || "annual",
       });
     } else {
       form.reset({
