@@ -18,6 +18,7 @@ import DashboardSettings from "./pages/DashboardSettings";
 import CarDetailsPage from "./pages/CarDetailsPage";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminClients from "./pages/AdminClients";
+import AdminUsers from "./pages/AdminUsers";
 import AdminEmailPreview from "./pages/AdminEmailPreview";
 import Adatvedelem from "./pages/Adatvedelem";
 import ASZF from "./pages/ASZF";
@@ -117,6 +118,14 @@ const App = () => (
               element={
                 <AdminProtectedRoute>
                   <AdminClients />
+                </AdminProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/users"
+              element={
+                <AdminProtectedRoute>
+                  <AdminUsers />
                 </AdminProtectedRoute>
               }
             />
