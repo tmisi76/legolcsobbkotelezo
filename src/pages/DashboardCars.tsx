@@ -240,19 +240,13 @@ export default function DashboardCars() {
           ))}
         </div>
       ) : cars.length === 0 ? (
-        <div className="bg-card rounded-xl border border-border p-8">
+        <div className="bg-card rounded-xl border border-border p-8 text-center">
           <EmptyState
             title="Még nem adtál hozzá autót"
             description="Add hozzá az első autódat és mi emlékeztetünk a biztosítás váltására!"
             actionLabel="Első autó hozzáadása"
-            actionTo="#"
+            onAction={handleOpenAdd}
           />
-          <div className="text-center -mt-6">
-            <Button variant="hero" size="lg" onClick={handleOpenAdd}>
-              <Plus className="w-5 h-5" />
-              Első autó hozzáadása
-            </Button>
-          </div>
         </div>
       ) : sortedCars.length === 0 ? (
         <div className="bg-card rounded-xl border border-border p-8 text-center">

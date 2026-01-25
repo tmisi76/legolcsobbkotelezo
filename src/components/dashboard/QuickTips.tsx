@@ -2,12 +2,10 @@ import { useState, useEffect } from "react";
 import { Lightbulb } from "lucide-react";
 
 const tips = [
-  "A kötelező biztosítást minden év november 1. és december 31. között lehet váltani a következő évre.",
   "A biztosítók díjai akár 30-40%-kal is eltérhetnek ugyanarra az autóra!",
-  "A bonus-malus besorolásod követi a téged, nem az autódat - vigyázz rá!",
-  "Ha 50 nappal a lejárat előtt mondod fel, az új biztosítás csak január 1-től érvényes.",
-  "Az online kötés általában olcsóbb, mint az ügynökön keresztül.",
-  "Fiatal vezetőként érdemes tapasztalt sofőrt is beírni üzembentartónak.",
+  "A bonus-malus besorolásod téged követ, nem az autódat - vigyázz rá!",
+  "Az évforduló előtt 30-60 nap között lehet felmondani a biztosítást, és az évforduló napjától érvényes az új.",
+  "Érdemes több biztosító ajánlatát is összehasonlítani a váltás előtt.",
 ];
 
 export function QuickTips() {

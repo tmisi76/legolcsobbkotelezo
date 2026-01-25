@@ -83,7 +83,7 @@ const LoginPage = () => {
               Bejelentkezés
             </h1>
             <p className="text-muted-foreground">
-              Üdvözlünk vissza! Jelentkezz be a fiókodba.
+              Üdvözlünk újra nálunk!
             </p>
           </div>
 
