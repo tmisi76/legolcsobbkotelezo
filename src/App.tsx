@@ -22,9 +22,6 @@ import AdminUsers from "./pages/AdminUsers";
 import AdminEmailPreview from "./pages/AdminEmailPreview";
 import Adatvedelem from "./pages/Adatvedelem";
 import ASZF from "./pages/ASZF";
-import Kapcsolat from "./pages/Kapcsolat";
-import Impresszum from "./pages/Impresszum";
-import JogiNyilatkozat from "./pages/JogiNyilatkozat";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -140,9 +137,6 @@ const App = () => (
             {/* Legal pages */}
             <Route path="/adatvedelem" element={<Adatvedelem />} />
             <Route path="/aszf" element={<ASZF />} />
-            <Route path="/kapcsolat" element={<Kapcsolat />} />
-            <Route path="/impresszum" element={<Impresszum />} />
-            <Route path="/jogi-nyilatkozat" element={<JogiNyilatkozat />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
