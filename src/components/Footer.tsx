@@ -33,24 +33,6 @@ const Footer = () => {
             >
               ÁSZF
             </Link>
-            <Link
-              to="/impresszum"
-              className="text-primary-foreground/60 hover:text-primary-foreground transition-colors duration-200 text-sm"
-            >
-              Impresszum
-            </Link>
-            <Link
-              to="/jogi-nyilatkozat"
-              className="text-primary-foreground/60 hover:text-primary-foreground transition-colors duration-200 text-sm"
-            >
-              Jogi nyilatkozat
-            </Link>
-            <Link
-              to="/kapcsolat"
-              className="text-primary-foreground/60 hover:text-primary-foreground transition-colors duration-200 text-sm"
-            >
-              Kapcsolat
-            </Link>
           </nav>
         </div>
 
