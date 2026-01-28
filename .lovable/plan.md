@@ -1,74 +1,88 @@
 
-
-# Terv: Kalkulátor lecserélése tájékoztató szövegre
+# Terv: Footer menü egyszerűsítése és jogi oldalak frissítése
 
 ## Összefoglaló
-A jelenlegi "Mennyit spórolhatsz évente?" kalkulátor konkrét, véletlenszerűen generált százalékokkal számol (15-20%), ami félrevezető lehet és potenciálisan MNB bírságot vonhat maga után. A kalkulátort egy informatív, de nem konkrét ígéreteket tartalmazó szekciókra cseréljük.
+A lábléc menüt lecsökkentjük 2 elemre (Adatvédelem és ÁSZF), a többi oldalt (Impresszum, Jogi nyilatkozat, Kapcsolat) eltávolítjuk, és a megmaradó két oldal tartalmát frissítjük a H-Kontakt Group Kft. adataival.
 
 ## Változtatások
 
-### 1. SavingsCalculator komponens átalakítása
-A teljes interaktív kalkulátort lecseréljük egy statikus, de vizuálisan vonzó információs blokkra:
+### 1. Footer.tsx - Menüpontok csökkentése
+A jelenlegi 5 linkből (Adatvédelem, ÁSZF, Impresszum, Jogi nyilatkozat, Kapcsolat) csak 2 marad:
+- Adatvédelem
+- ÁSZF
 
-**Új tartalom:**
-- **Főcím:** "💰 Mennyit spórolhatsz?"
-- **Fő üzenet:** "Évente akár több tízezer forintot is! Ez nagyban függ attól, hogy kihasználtunk-e minden rendelkezésünkre álló kedvezményt."
-- **Kiegészítő pontok (opcionális):**
-  - Bonus-malus besorolás figyelembevétele
-  - Díjkedvezmények összehasonlítása
-  - Egyedi igények felmérése
+### 2. Adatvedelem.tsx - Teljes tartalom frissítése
+Új, részletes adatvédelmi tájékoztató a cég adataival:
 
-### 2. Eltávolítandó elemek
-- Slider komponens
-- Input mező
-- Véletlenszerű százalék generálás
-- Konkrét forint összegek megjelenítése
-- Confetti animáció
-- 5 éves megtakarítás számítás
+**Adatkezelő:**
+- H-Kontakt Group Kft
+- Székhely: 8900 Zalaegerszeg, Tompa Mihály u. 1-3. 1. emelet (a Göcsej Üzletházban)
+- Telefon: 06-20-441-5868
+- Email: info@h-kontakt.hu
 
-### 3. Megtartandó elemek
-- Szekció struktúra és elhelyezés
-- Gradient keret design
-- "Regisztrálj az ingyenes emlékeztetőért!" CTA gomb
-- Framer Motion animációk (fade-in)
+**Tartalmi struktúra:**
+1. Adatkezelő - cégadatok
+2. Kezelt adatok köre
+3. Adatkezelés célja
+4. Adatkezelés jogalapja (GDPR)
+5. Adatok tárolása és biztonsága
+6. Érintetti jogok
+7. Cookie-k használata
+8. Kapcsolat
+
+### 3. ASZF.tsx - Teljes tartalom frissítése
+Új, részletes ÁSZF a cég adataival:
+
+**Szolgáltató:**
+- H-Kontakt Group Kft
+- Székhely: 8900 Zalaegerszeg, Tompa Mihály u. 1-3. 1. emelet (a Göcsej Üzletházban)
+- Telefon: 06-20-441-5868
+- Email: info@h-kontakt.hu
+
+**Tartalmi struktúra:**
+1. Szolgáltató adatai - teljes cégadatok
+2. A szolgáltatás leírása
+3. Regisztráció
+4. A szolgáltatás díja
+5. Felelősség
+6. Szerződés megszüntetése
+7. Alkalmazandó jog
+8. Módosítások
+
+### 4. App.tsx - Route-ok törlése
+Eltávolítandó route-ok és importok:
+- `/kapcsolat` - Kapcsolat
+- `/impresszum` - Impresszum
+- `/jogi-nyilatkozat` - JogiNyilatkozat
+
+### 5. Törlendő fájlok
+- `src/pages/Kapcsolat.tsx`
+- `src/pages/Impresszum.tsx`
+- `src/pages/JogiNyilatkozat.tsx`
+
+---
 
 ## Technikai részletek
 
 ### Érintett fájlok
+
 | Fájl | Művelet |
 |------|---------|
-| `src/components/SavingsCalculator.tsx` | Teljes átírás |
+| `src/components/Footer.tsx` | Szerkesztés - 3 link törlése |
+| `src/pages/Adatvedelem.tsx` | Szerkesztés - tartalom csere |
+| `src/pages/ASZF.tsx` | Szerkesztés - tartalom csere |
+| `src/App.tsx` | Szerkesztés - 3 route és import törlése |
+| `src/pages/Kapcsolat.tsx` | Törlés |
+| `src/pages/Impresszum.tsx` | Törlés |
+| `src/pages/JogiNyilatkozat.tsx` | Törlés |
 
-### Eltávolítandó importok
-- `Slider` komponens
-- `Input` komponens
-- `useCountUp` hook
-- `useState` (részben)
+### Footer struktúra (új)
 
-### Új komponens struktúra
 ```text
-┌─────────────────────────────────────────┐
-│ 💰 Mennyit spórolhatsz?                │
-├─────────────────────────────────────────┤
-│                                         │
-│   Évente akár több tízezer forintot    │
-│                  is!                    │
-│                                         │
-│   Ez nagyban függ attól, hogy          │
-│   kihasználtunk-e minden               │
-│   rendelkezésünkre álló kedvezményt.   │
-│                                         │
-│  ┌─────────────────────────────────┐   │
-│  │ Regisztrálj az ingyenes         │   │
-│  │ emlékeztetőért!            →    │   │
-│  └─────────────────────────────────┘   │
-│                                         │
-└─────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│  [Logo] LegolcsóbbKötelező          Adatvédelem    ÁSZF        │
+├─────────────────────────────────────────────────────────────────┤
+│  © 2026 LegolcsóbbKötelező.hu - Minden jog fenntartva          │
+│  Független biztosítási alkusz - emlékeztetünk, hogy spórolhass!│
+└─────────────────────────────────────────────────────────────────┘
 ```
-
-## Előnyök
-- MNB-konform, nem tartalmaz félrevezető számításokat
-- Megtartja a marketing üzenetet anélkül, hogy konkrét ígéreteket tenne
-- Egyszerűbb, kevesebb kód
-- Továbbra is ösztönzi a regisztrációt
-
