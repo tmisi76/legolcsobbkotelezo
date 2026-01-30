@@ -30,6 +30,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 import { Car } from "@/types/database";
@@ -407,21 +414,32 @@ export function CarFormModal({
                   <FormField
                     control={form.control}
                     name="year"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Évjárat *</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            min={1970}
-                            max={currentYear + 1}
-                            {...field}
-                            onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                    render={({ field }) => {
+                      const yearOptions = Array.from({ length: 71 }, (_, i) => currentYear - i);
+                      return (
+                        <FormItem>
+                          <FormLabel>Évjárat *</FormLabel>
+                          <Select
+                            onValueChange={(value) => field.onChange(parseInt(value))}
+                            value={field.value?.toString()}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Válaszd ki az évjáratot" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {yearOptions.map((year) => (
+                                <SelectItem key={year} value={year.toString()}>
+                                  {year}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
                   />
 
                   <FormField
@@ -639,7 +657,7 @@ export function CarFormModal({
                   name="accepts_email_only"
                   render={({ field }) => (
                     <FormItem className="space-y-3">
-                      <FormLabel>Elfogadnád, hogy a biztosító emailben értesítsen (ne küldjön postai levelet)? *</FormLabel>
+                      <FormLabel>Elfogadod, hogy a biztosító emailben értesítsen (ne küldjön postai levelet)? *</FormLabel>
                       <FormControl>
                         <RadioGroup
                           onValueChange={field.onChange}
