@@ -115,28 +115,6 @@ export default function CarDetailsPage() {
 
   const status = calculateCarStatus(car.anniversary_date);
 
-  const handleFormSubmit = async (data: any) => {
-    try {
-      const formattedData = {
-        nickname: data.nickname,
-        brand: data.brand,
-        model: data.model,
-        year: data.year,
-        engine_power_kw: data.engine_power_kw ?? null,
-        current_annual_fee: data.current_annual_fee ?? null,
-        anniversary_date: format(data.anniversary_date, "yyyy-MM-dd"),
-        license_plate: data.license_plate ?? null,
-        notes: data.notes ?? null,
-      };
-      await updateCar({ carId: car.id, updates: formattedData });
-      toast.success("✅ Módosítások mentve!");
-      setIsEditOpen(false);
-      refetch();
-    } catch (error) {
-      toast.error("Hiba történt. Próbáld újra!");
-    }
-  };
-
   const handleConfirmDelete = async () => {
     try {
       await deleteCar(car.id);
@@ -405,8 +383,10 @@ export default function CarDetailsPage() {
         open={isEditOpen}
         onOpenChange={setIsEditOpen}
         car={car}
-        onSubmit={handleFormSubmit}
-        isLoading={isUpdating}
+        onCarUpdated={() => {
+          setIsEditOpen(false);
+          refetch();
+        }}
       />
 
       {/* Delete Dialog */}
