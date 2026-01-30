@@ -1,88 +1,94 @@
 
-# Terv: Footer menü egyszerűsítése és jogi oldalak frissítése
+# Terv: Évjárat lenyíló és szövegjavítás
 
 ## Összefoglaló
-A lábléc menüt lecsökkentjük 2 elemre (Adatvédelem és ÁSZF), a többi oldalt (Impresszum, Jogi nyilatkozat, Kapcsolat) eltávolítjuk, és a megmaradó két oldal tartalmát frissítjük a H-Kontakt Group Kft. adataival.
+Az évjárat mezőt lenyíló menüvé alakítjuk (aktuális évtől 70 évig visszafelé), és javítjuk az email értesítés kérdés szövegét.
 
 ## Változtatások
 
-### 1. Footer.tsx - Menüpontok csökkentése
-A jelenlegi 5 linkből (Adatvédelem, ÁSZF, Impresszum, Jogi nyilatkozat, Kapcsolat) csak 2 marad:
-- Adatvédelem
-- ÁSZF
+### 1. Évjárat mező átalakítása Select komponensre
+- Jelenlegi: `<Input type="number">` mező
+- Új: `<Select>` lenyíló menü
+- Opciók: 2026, 2025, 2024, ... 1956 (aktuális év - 70 év)
+- Az aktuális év lesz az alapértelmezett
 
-### 2. Adatvedelem.tsx - Teljes tartalom frissítése
-Új, részletes adatvédelmi tájékoztató a cég adataival:
-
-**Adatkezelő:**
-- H-Kontakt Group Kft
-- Székhely: 8900 Zalaegerszeg, Tompa Mihály u. 1-3. 1. emelet (a Göcsej Üzletházban)
-- Telefon: 06-20-441-5868
-- Email: info@h-kontakt.hu
-
-**Tartalmi struktúra:**
-1. Adatkezelő - cégadatok
-2. Kezelt adatok köre
-3. Adatkezelés célja
-4. Adatkezelés jogalapja (GDPR)
-5. Adatok tárolása és biztonsága
-6. Érintetti jogok
-7. Cookie-k használata
-8. Kapcsolat
-
-### 3. ASZF.tsx - Teljes tartalom frissítése
-Új, részletes ÁSZF a cég adataival:
-
-**Szolgáltató:**
-- H-Kontakt Group Kft
-- Székhely: 8900 Zalaegerszeg, Tompa Mihály u. 1-3. 1. emelet (a Göcsej Üzletházban)
-- Telefon: 06-20-441-5868
-- Email: info@h-kontakt.hu
-
-**Tartalmi struktúra:**
-1. Szolgáltató adatai - teljes cégadatok
-2. A szolgáltatás leírása
-3. Regisztráció
-4. A szolgáltatás díja
-5. Felelősség
-6. Szerződés megszüntetése
-7. Alkalmazandó jog
-8. Módosítások
-
-### 4. App.tsx - Route-ok törlése
-Eltávolítandó route-ok és importok:
-- `/kapcsolat` - Kapcsolat
-- `/impresszum` - Impresszum
-- `/jogi-nyilatkozat` - JogiNyilatkozat
-
-### 5. Törlendő fájlok
-- `src/pages/Kapcsolat.tsx`
-- `src/pages/Impresszum.tsx`
-- `src/pages/JogiNyilatkozat.tsx`
+### 2. Szövegjavítás
+- Jelenlegi: "Elfogadnád, hogy a biztosító emailben értesítsen..."
+- Új: "Elfogadod, hogy a biztosító emailben értesítsen..."
 
 ---
 
 ## Technikai részletek
 
-### Érintett fájlok
-
+### Érintett fájl
 | Fájl | Művelet |
 |------|---------|
-| `src/components/Footer.tsx` | Szerkesztés - 3 link törlése |
-| `src/pages/Adatvedelem.tsx` | Szerkesztés - tartalom csere |
-| `src/pages/ASZF.tsx` | Szerkesztés - tartalom csere |
-| `src/App.tsx` | Szerkesztés - 3 route és import törlése |
-| `src/pages/Kapcsolat.tsx` | Törlés |
-| `src/pages/Impresszum.tsx` | Törlés |
-| `src/pages/JogiNyilatkozat.tsx` | Törlés |
+| `src/components/dashboard/CarFormModal.tsx` | Szerkesztés |
 
-### Footer struktúra (új)
-
-```text
-┌─────────────────────────────────────────────────────────────────┐
-│  [Logo] LegolcsóbbKötelező          Adatvédelem    ÁSZF        │
-├─────────────────────────────────────────────────────────────────┤
-│  © 2026 LegolcsóbbKötelező.hu - Minden jog fenntartva          │
-│  Független biztosítási alkusz - emlékeztetünk, hogy spórolhass!│
-└─────────────────────────────────────────────────────────────────┘
+### Szükséges import bővítés
+Hozzá kell adni a Select komponenseket:
+```tsx
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 ```
+
+### Évjárat generátor logika
+```tsx
+const currentYear = new Date().getFullYear();
+const yearOptions = Array.from(
+  { length: 71 }, 
+  (_, i) => currentYear - i
+);
+// Eredmény: [2026, 2025, 2024, ..., 1956]
+```
+
+### Évjárat mező új struktúra (407-425. sor)
+Az Input mező helyett:
+```tsx
+<FormField
+  control={form.control}
+  name="year"
+  render={({ field }) => (
+    <FormItem>
+      <FormLabel>Évjárat *</FormLabel>
+      <Select
+        onValueChange={(value) => field.onChange(parseInt(value))}
+        value={field.value?.toString()}
+      >
+        <FormControl>
+          <SelectTrigger>
+            <SelectValue placeholder="Válaszd ki az évjáratot" />
+          </SelectTrigger>
+        </FormControl>
+        <SelectContent>
+          {yearOptions.map((year) => (
+            <SelectItem key={year} value={year.toString()}>
+              {year}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <FormMessage />
+    </FormItem>
+  )}
+/>
+```
+
+### Szövegjavítás (642. sor)
+```tsx
+// Előtte:
+<FormLabel>Elfogadnád, hogy a biztosító emailben értesítsen (ne küldjön postai levelet)? *</FormLabel>
+
+// Utána:
+<FormLabel>Elfogadod, hogy a biztosító emailben értesítsen (ne küldjön postai levelet)? *</FormLabel>
+```
+
+## Előnyök
+- Könnyebb évjárat kiválasztás mobilon is
+- Nincs lehetőség hibás évszám bevitelére
+- Egységes igealak a kérdésekben
