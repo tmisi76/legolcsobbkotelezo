@@ -1,9 +1,8 @@
 import { useState, useMemo } from "react";
-import { format } from "date-fns";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { EmptyState } from "@/components/dashboard/EmptyState";
 import { CarCard } from "@/components/dashboard/CarCard";
-import { CarFormModal, CarFormSubmitData } from "@/components/dashboard/CarFormModal";
+import { CarFormModal } from "@/components/dashboard/CarFormModal";
 import { DeleteCarDialog } from "@/components/dashboard/DeleteCarDialog";
 import { useCars } from "@/hooks/useCars";
 import { getDaysUntilAnniversary } from "@/lib/database";
@@ -19,22 +18,18 @@ import { Plus, Filter } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { Car } from "@/types/database";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
 
 type SortOption = "expiry" | "name" | "created";
 type FilterOption = "all" | "urgent" | "upcoming" | "safe";
 
 export default function DashboardCars() {
-  const { cars, isLoading, createCar, updateCar, deleteCar, isCreating, isUpdating, isDeleting } = useCars();
-  const { user } = useAuth();
+  const { cars, isLoading, deleteCar, isDeleting } = useCars();
   
   const [sortBy, setSortBy] = useState<SortOption>("expiry");
   const [filterBy, setFilterBy] = useState<FilterOption>("all");
   
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingCar, setEditingCar] = useState<Car | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
   
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [deletingCar, setDeletingCar] = useState<Car | null>(null);
@@ -87,70 +82,6 @@ export default function DashboardCars() {
   const handleDelete = (car: Car) => {
     setDeletingCar(car);
     setIsDeleteOpen(true);
-  };
-
-  const uploadDocument = async (file: File): Promise<string | null> => {
-    if (!user) return null;
-    
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${user.id}/${Date.now()}.${fileExt}`;
-    
-    const { data, error } = await supabase.storage
-      .from('insurance-documents')
-      .upload(fileName, file);
-    
-    if (error) {
-      console.error('Error uploading document:', error);
-      throw new Error('Nem sikerült feltölteni a dokumentumot');
-    }
-    
-    // Return just the file path (not full URL) for private bucket
-    return data.path;
-  };
-
-  const handleFormSubmit = async (data: CarFormSubmitData) => {
-    try {
-      setIsUploading(true);
-      
-      let documentUrl: string | null = null;
-      
-      // Upload document if provided
-      if (data.documentFile) {
-        documentUrl = await uploadDocument(data.documentFile);
-      }
-      
-      const formattedData = {
-        nickname: `${data.brand} ${data.model}`, // Auto-generate nickname from brand + model
-        brand: data.brand,
-        model: data.model,
-        year: data.year,
-        engine_power_kw: data.engine_power_kw ?? null,
-        current_annual_fee: data.current_annual_fee ?? null,
-        anniversary_date: format(data.anniversary_date, "yyyy-MM-dd"),
-        license_plate: data.license_plate ?? null,
-        notes: data.notes ?? null,
-        document_url: documentUrl,
-        payment_method: data.payment_method ?? null,
-        has_child_under_18: data.has_child_under_18=== "yes",
-        accepts_email_only: data.accepts_email_only === "yes",
-        payment_frequency: data.payment_frequency ?? null,
-      };
-
-      if (editingCar) {
-        await updateCar({ carId: editingCar.id, updates: formattedData });
-        toast.success("✅ Módosítások mentve!");
-      } else {
-        await createCar(formattedData);
-        toast.success("✅ Autó sikeresen hozzáadva!");
-      }
-      setIsFormOpen(false);
-      setEditingCar(null);
-    } catch (error) {
-      console.error('Form submission error:', error);
-      toast.error("Hiba történt. Próbáld újra!");
-    } finally {
-      setIsUploading(false);
-    }
   };
 
   const handleConfirmDelete = async () => {
@@ -274,8 +205,14 @@ export default function DashboardCars() {
         open={isFormOpen}
         onOpenChange={setIsFormOpen}
         car={editingCar}
-        onSubmit={handleFormSubmit}
-        isLoading={isCreating || isUpdating || isUploading}
+        onCarCreated={() => {
+          setIsFormOpen(false);
+          setEditingCar(null);
+        }}
+        onCarUpdated={() => {
+          setIsFormOpen(false);
+          setEditingCar(null);
+        }}
       />
 
       {/* Delete Confirmation */}

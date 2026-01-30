@@ -42,6 +42,7 @@ import { cn } from "@/lib/utils";
 import { Car } from "@/types/database";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 const currentYear = new Date().getFullYear();
 
@@ -107,15 +108,18 @@ const carFormSchema = z.object({
 
 type CarFormValues = z.infer<typeof carFormSchema>;
 
-export interface CarFormSubmitData extends CarFormValues {
-  documentFile?: File | null;
+interface UploadedFile {
+  id: string;
+  name: string;
+  path: string;
 }
 
 interface CarFormModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   car?: Car | null;
-  onSubmit: (data: CarFormSubmitData) => Promise<void>;
+  onCarCreated?: () => void;
+  onCarUpdated?: () => void;
   isLoading?: boolean;
 }
 
@@ -123,15 +127,21 @@ export function CarFormModal({
   open,
   onOpenChange,
   car,
-  onSubmit,
-  isLoading,
+  onCarCreated,
+  onCarUpdated,
+  isLoading: externalLoading,
 }: CarFormModalProps) {
+  const { user } = useAuth();
   const isEditing = !!car;
   const [step, setStep] = useState(1);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [fileError, setFileError] = useState<string | null>(null);
+  const [savedCarId, setSavedCarId] = useState<string | null>(null);
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  const [isFileUploading, setIsFileUploading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const isLoading = externalLoading || isSaving;
 
   const form = useForm<CarFormValues>({
     resolver: zodResolver(carFormSchema),
@@ -162,12 +172,12 @@ export function CarFormModal({
         anniversary_date: new Date(car.anniversary_date),
         license_plate: car.license_plate,
         notes: car.notes,
-        // Preserve existing step 2 values when editing
         payment_method: (car.payment_method as "bank_transfer" | "card" | "check") || "bank_transfer",
         has_child_under_18: car.has_child_under_18 ? "yes" : "no",
         accepts_email_only: car.accepts_email_only ? "yes" : "no",
         payment_frequency: (car.payment_frequency as "quarterly" | "semi_annual" | "annual") || "annual",
       });
+      setSavedCarId(car.id);
     } else {
       form.reset({
         brand: "",
@@ -183,11 +193,60 @@ export function CarFormModal({
         accepts_email_only: undefined,
         payment_frequency: undefined,
       });
+      setSavedCarId(null);
     }
     setStep(1);
-    setSelectedFile(null);
-    setFileError(null);
+    setUploadedFiles([]);
   }, [car, form, open]);
+
+  const saveCarData = async (): Promise<string | null> => {
+    if (!user) return null;
+    
+    const data = form.getValues();
+    const formattedData = {
+      nickname: `${data.brand} ${data.model}`,
+      brand: data.brand,
+      model: data.model,
+      year: data.year,
+      engine_power_kw: data.engine_power_kw ?? null,
+      current_annual_fee: data.current_annual_fee ?? null,
+      anniversary_date: format(data.anniversary_date, "yyyy-MM-dd"),
+      license_plate: data.license_plate ?? null,
+      notes: data.notes ?? null,
+      payment_method: data.payment_method ?? null,
+      has_child_under_18: data.has_child_under_18 === "yes",
+      accepts_email_only: data.accepts_email_only === "yes",
+      payment_frequency: data.payment_frequency ?? null,
+    };
+
+    setIsSaving(true);
+    try {
+      if (isEditing && car) {
+        const { error } = await supabase
+          .from('cars')
+          .update(formattedData)
+          .eq('id', car.id);
+        
+        if (error) throw error;
+        return car.id;
+      } else {
+        const { data: newCar, error } = await supabase
+          .from('cars')
+          .insert({ ...formattedData, user_id: user.id })
+          .select()
+          .single();
+        
+        if (error) throw error;
+        return newCar.id;
+      }
+    } catch (error) {
+      console.error('Error saving car:', error);
+      toast.error("Hiba történt a mentés során");
+      return null;
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const handleNext = async () => {
     if (step === 1) {
@@ -200,7 +259,15 @@ export function CarFormModal({
       const step2Fields = ["payment_method", "has_child_under_18", "accepts_email_only", "payment_frequency"] as const;
       const isValid = await form.trigger(step2Fields);
       if (isValid) {
-        setStep(3);
+        // Save car data at the end of step 2
+        const carId = await saveCarData();
+        if (carId) {
+          setSavedCarId(carId);
+          setStep(3);
+          if (!isEditing) {
+            toast.success("✅ Autó adatok mentve!");
+          }
+        }
       }
     }
   };
@@ -221,21 +288,76 @@ export function CarFormModal({
     return null;
   };
 
-  const handleFileSelect = (file: File) => {
-    const error = validateFile(file);
-    if (error) {
-      setFileError(error);
-      setSelectedFile(null);
-    } else {
-      setFileError(null);
-      setSelectedFile(file);
+  const handleFilesSelect = async (files: FileList) => {
+    if (!savedCarId || !user) {
+      toast.error("Hiba: az autó nincs mentve");
+      return;
+    }
+    
+    setIsFileUploading(true);
+    
+    for (const file of Array.from(files)) {
+      const error = validateFile(file);
+      if (error) {
+        toast.error(`${file.name}: ${error}`);
+        continue;
+      }
+      
+      try {
+        // Upload to storage
+        const fileExt = file.name.split('.').pop();
+        const filePath = `${user.id}/${savedCarId}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('insurance-documents')
+          .upload(filePath, file);
+        
+        if (uploadError) {
+          console.error('Upload error:', uploadError);
+          toast.error(`${file.name}: Feltöltési hiba`);
+          continue;
+        }
+        
+        // Save to car_documents table
+        const { data: docData, error: dbError } = await supabase
+          .from('car_documents')
+          .insert({
+            car_id: savedCarId,
+            file_path: filePath,
+            file_name: file.name,
+            file_type: file.type,
+          })
+          .select()
+          .single();
+        
+        if (dbError) {
+          console.error('DB error:', dbError);
+          toast.error(`${file.name}: Adatbázis hiba`);
+          // Try to clean up the uploaded file
+          await supabase.storage.from('insurance-documents').remove([filePath]);
+          continue;
+        }
+        
+        setUploadedFiles(prev => [...prev, { id: docData.id, name: file.name, path: filePath }]);
+        toast.success(`${file.name} feltöltve`);
+      } catch (err) {
+        console.error('File upload error:', err);
+        toast.error(`${file.name}: Ismeretlen hiba`);
+      }
+    }
+    
+    setIsFileUploading(false);
+    
+    // Clear file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
     }
   };
 
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      handleFileSelect(file);
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      handleFilesSelect(files);
     }
   };
 
@@ -252,44 +374,66 @@ export function CarFormModal({
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file) {
-      handleFileSelect(file);
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      handleFilesSelect(files);
     }
   };
 
-  const handleRemoveFile = () => {
-    setSelectedFile(null);
-    setFileError(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
+  const handleRemoveUploadedFile = async (file: UploadedFile) => {
+    try {
+      // Delete from storage
+      await supabase.storage.from('insurance-documents').remove([file.path]);
+      
+      // Delete from database
+      await supabase.from('car_documents').delete().eq('id', file.id);
+      
+      setUploadedFiles(prev => prev.filter(f => f.id !== file.id));
+      toast.success("Dokumentum törölve");
+    } catch (error) {
+      console.error('Error removing file:', error);
+      toast.error("Hiba történt a törlés során");
     }
   };
 
-  const handleSubmit = async (data: CarFormValues) => {
-    await onSubmit({ ...data, documentFile: selectedFile });
-  };
-
-  const handleSkipDocument = async () => {
-    const data = form.getValues();
-    await onSubmit({ ...data, documentFile: null });
+  const handleFinish = () => {
+    if (isEditing) {
+      toast.success("✅ Módosítások mentve!");
+      onCarUpdated?.();
+    } else {
+      toast.success("✅ Autó sikeresen hozzáadva!");
+      onCarCreated?.();
+    }
+    onOpenChange(false);
   };
 
   const handleOpenChange = (newOpen: boolean) => {
     if (!newOpen) {
       setStep(1);
-      setSelectedFile(null);
-      setFileError(null);
+      setUploadedFiles([]);
+      setSavedCarId(null);
     }
     onOpenChange(newOpen);
   };
 
-  const getFileIcon = () => {
-    if (!selectedFile) return null;
-    if (selectedFile.type === "application/pdf") {
-      return <FileText className="w-8 h-8 text-red-500" />;
+  // For editing mode - save directly from step 1
+  const handleEditSubmit = async () => {
+    const isValid = await form.trigger();
+    if (isValid) {
+      const carId = await saveCarData();
+      if (carId) {
+        toast.success("✅ Módosítások mentve!");
+        onCarUpdated?.();
+        onOpenChange(false);
+      }
     }
-    return <ImageIcon className="w-8 h-8 text-blue-500" />;
+  };
+
+  const getFileIcon = (fileType: string) => {
+    if (fileType === "application/pdf") {
+      return <FileText className="w-5 h-5 text-red-500" />;
+    }
+    return <ImageIcon className="w-5 h-5 text-blue-500" />;
   };
 
   const getStepTitle = () => {
@@ -355,10 +499,9 @@ export function CarFormModal({
         )}
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+          <form className="space-y-4">
             {step === 1 && (
               <>
-
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -705,7 +848,7 @@ export function CarFormModal({
               <div className="space-y-4">
                 {/* File upload area */}
                 <div
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={() => !isFileUploading && fileInputRef.current?.click()}
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
@@ -714,7 +857,7 @@ export function CarFormModal({
                     isDragging
                       ? "border-primary bg-primary/5"
                       : "border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/50",
-                    selectedFile && "border-primary bg-primary/5"
+                    isFileUploading && "opacity-50 cursor-wait"
                   )}
                 >
                   <input
@@ -723,53 +866,59 @@ export function CarFormModal({
                     accept=".jpg,.jpeg,.png,.webp,.pdf"
                     onChange={handleFileInputChange}
                     className="hidden"
+                    multiple
+                    disabled={isFileUploading}
                   />
                   
-                  {selectedFile ? (
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-center">
-                        {getFileIcon()}
-                      </div>
-                      <div className="space-y-1">
-                        <p className="font-medium text-sm truncate max-w-[250px] mx-auto">
-                          {selectedFile.name}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-                        </p>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleRemoveFile();
-                        }}
-                      >
-                        <X className="w-4 h-4 mr-2" />
-                        Eltávolítás
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-center">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-center">
+                      {isFileUploading ? (
+                        <Loader2 className="w-10 h-10 text-primary animate-spin" />
+                      ) : (
                         <Upload className="w-10 h-10 text-muted-foreground" />
-                      </div>
-                      <div className="space-y-1">
-                        <p className="font-medium">
-                          Húzd ide a fájlt vagy kattints
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          JPG, PNG, WebP vagy PDF - max 10MB
-                        </p>
-                      </div>
+                      )}
                     </div>
-                  )}
+                    <div className="space-y-1">
+                      <p className="font-medium">
+                        {isFileUploading ? "Feltöltés folyamatban..." : "Húzd ide a fájlokat vagy kattints"}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        JPG, PNG, WebP vagy PDF - max 10MB/fájl
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Több fájl is kiválasztható egyszerre
+                      </p>
+                    </div>
+                  </div>
                 </div>
 
-                {fileError && (
-                  <p className="text-sm text-destructive">{fileError}</p>
+                {/* Uploaded files list */}
+                {uploadedFiles.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Feltöltött dokumentumok ({uploadedFiles.length})
+                    </p>
+                    {uploadedFiles.map((file) => (
+                      <div 
+                        key={file.id} 
+                        className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          {getFileIcon(file.path.endsWith('.pdf') ? 'application/pdf' : 'image/jpeg')}
+                          <span className="text-sm truncate">{file.name}</span>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="shrink-0"
+                          onClick={() => handleRemoveUploadedFile(file)}
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
                 )}
 
                 {/* Tip */}
@@ -795,7 +944,7 @@ export function CarFormModal({
                     Mégse
                   </Button>
                   {isEditing ? (
-                    <Button type="submit" className="flex-1" disabled={isLoading}>
+                    <Button type="button" className="flex-1" disabled={isLoading} onClick={handleEditSubmit}>
                       {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                       Mentés
                     </Button>
@@ -817,7 +966,13 @@ export function CarFormModal({
                     <ArrowLeft className="w-4 h-4 mr-2" />
                     Vissza
                   </Button>
-                  <Button type="button" className="flex-1" onClick={handleNext}>
+                  <Button 
+                    type="button" 
+                    className="flex-1" 
+                    onClick={handleNext}
+                    disabled={isLoading}
+                  >
+                    {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                     Tovább
                   </Button>
                 </>
@@ -827,22 +982,19 @@ export function CarFormModal({
                     type="button"
                     variant="outline"
                     onClick={handleBack}
-                    disabled={isLoading}
+                    disabled={isFileUploading}
                   >
                     <ArrowLeft className="w-4 h-4 mr-2" />
                     Vissza
                   </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={handleSkipDocument}
-                    disabled={isLoading}
+                  <Button 
+                    type="button" 
+                    className="flex-1" 
+                    onClick={handleFinish}
+                    disabled={isFileUploading}
                   >
-                    Kihagyom
-                  </Button>
-                  <Button type="submit" className="flex-1" disabled={isLoading}>
-                    {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                    Hozzáadás
+                    {isFileUploading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                    Tovább
                   </Button>
                 </>
               )}
@@ -852,4 +1004,21 @@ export function CarFormModal({
       </DialogContent>
     </Dialog>
   );
+}
+
+// Keep the old export interface for backward compatibility
+export interface CarFormSubmitData {
+  brand: string;
+  model: string;
+  year: number;
+  engine_power_kw?: number | null;
+  current_annual_fee?: number | null;
+  anniversary_date: Date;
+  license_plate?: string | null;
+  notes?: string | null;
+  payment_method?: string;
+  has_child_under_18?: string;
+  accepts_email_only?: string;
+  payment_frequency?: string;
+  documentFile?: File | null;
 }
