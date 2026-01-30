@@ -13,7 +13,7 @@ import { Loader2 } from "lucide-react";
 interface DeleteCarDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  carNickname: string;
+  carName: string;
   onConfirm: () => Promise<void>;
   isLoading?: boolean;
 }
@@ -21,7 +21,7 @@ interface DeleteCarDialogProps {
 export function DeleteCarDialog({
   open,
   onOpenChange,
-  carNickname,
+  carName,
   onConfirm,
   isLoading,
 }: DeleteCarDialogProps) {
@@ -30,7 +30,7 @@ export function DeleteCarDialog({
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>
-            Biztosan törlöd a(z) "{carNickname}" autót?
+            Biztosan törlöd a(z) "{carName}" autót?
           </AlertDialogTitle>
           <AlertDialogDescription>
             Ez a művelet nem vonható vissza. Az autó és minden hozzá tartozó

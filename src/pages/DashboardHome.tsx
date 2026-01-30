@@ -32,7 +32,7 @@ export default function DashboardHome() {
         userName={profile?.full_name || "Felhasználó"}
         carsCount={cars.length}
         nextExpiryDays={nextExpiry?.days}
-        nextExpiryCar={nextExpiry?.car.nickname}
+        nextExpiryCar={nextExpiry ? `${nextExpiry.car.brand} ${nextExpiry.car.model}` : undefined}
       />
 
       {/* Stats Cards */}
@@ -55,7 +55,7 @@ export default function DashboardHome() {
               ? `${nextExpiry.days} nap`
               : "Nincs"
           }
-          subtext={nextExpiry?.car.nickname}
+          subtext={nextExpiry ? `${nextExpiry.car.brand} ${nextExpiry.car.model}` : undefined}
           variant={getExpiryVariant(nextExpiry?.days)}
           isLoading={isLoading}
         />
@@ -106,9 +106,9 @@ export default function DashboardHome() {
                   <CarPreviewCard
                     key={car.id}
                     id={car.id}
-                    nickname={car.nickname}
                     brand={car.brand}
                     model={car.model}
+                    year={car.year}
                     daysUntilAnniversary={getDaysUntilAnniversary(car.anniversary_date)}
                   />
                 ))}

@@ -49,11 +49,6 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ACCEPTED_FILE_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
 
 const carFormSchema = z.object({
-  nickname: z
-    .string()
-    .trim()
-    .min(1, "Add meg az autó becenevét")
-    .max(50, "Maximum 50 karakter"),
   brand: z
     .string()
     .trim()
@@ -141,7 +136,6 @@ export function CarFormModal({
   const form = useForm<CarFormValues>({
     resolver: zodResolver(carFormSchema),
     defaultValues: {
-      nickname: "",
       brand: "",
       model: "",
       year: currentYear,
@@ -160,7 +154,6 @@ export function CarFormModal({
   useEffect(() => {
     if (car) {
       form.reset({
-        nickname: car.nickname,
         brand: car.brand,
         model: car.model,
         year: car.year,
@@ -177,7 +170,6 @@ export function CarFormModal({
       });
     } else {
       form.reset({
-        nickname: "",
         brand: "",
         model: "",
         year: currentYear,
@@ -199,7 +191,7 @@ export function CarFormModal({
 
   const handleNext = async () => {
     if (step === 1) {
-      const step1Fields = ["nickname", "brand", "model", "year", "anniversary_date"] as const;
+      const step1Fields = ["brand", "model", "year", "anniversary_date"] as const;
       const isValid = await form.trigger(step1Fields);
       if (isValid) {
         setStep(2);
@@ -366,19 +358,6 @@ export function CarFormModal({
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
             {step === 1 && (
               <>
-                <FormField
-                  control={form.control}
-                  name="nickname"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Becenév *</FormLabel>
-                      <FormControl>
-                        <Input placeholder="pl. Családi autó, Munkás autó" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
 
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
