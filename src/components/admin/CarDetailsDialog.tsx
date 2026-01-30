@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -25,6 +26,8 @@ import {
 import { formatHungarianDate, formatHungarianNumber, getDaysUntilAnniversary } from "@/lib/database";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { format } from "date-fns";
+import { hu } from "date-fns/locale";
 
 interface CarWithUser {
   id: string;
@@ -119,16 +122,32 @@ const getFilePath = (documentUrl: string): string => {
 };
 
 export function CarDetailsDialog({ car, open, onOpenChange, onNotesUpdate }: CarDetailsDialogProps) {
-  const [isLoadingDocument, setIsLoadingDocument] = useState(false);
+  const [isLoadingDocument, setIsLoadingDocument] = useState<string | null>(null);
   const [adminNotes, setAdminNotes] = useState(car?.notes || "");
   const [isSavingNotes, setIsSavingNotes] = useState(false);
   
+  // Fetch car documents
+  const { data: carDocuments = [] } = useQuery({
+    queryKey: ["car_documents", car?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("car_documents")
+        .select("*")
+        .eq("car_id", car!.id)
+        .order("uploaded_at", { ascending: false });
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!car?.id,
+  });
+
   // Update local notes when car changes
-  useState(() => {
+  useEffect(() => {
     if (car) {
       setAdminNotes(car.notes || "");
     }
-  });
+  }, [car]);
   
   if (!car) return null;
 
@@ -154,13 +173,9 @@ export function CarDetailsDialog({ car, open, onOpenChange, onNotesUpdate }: Car
     }
   };
 
-  const openDocument = async () => {
-    if (!car.document_url) return;
-    
-    setIsLoadingDocument(true);
+  const openDocument = async (filePath: string, docId?: string) => {
+    setIsLoadingDocument(docId || 'legacy');
     try {
-      const filePath = getFilePath(car.document_url);
-      
       // Generate signed URL (valid for 1 hour)
       const { data, error } = await supabase.storage
         .from('insurance-documents')
@@ -179,8 +194,15 @@ export function CarDetailsDialog({ car, open, onOpenChange, onNotesUpdate }: Car
       console.error('Error opening document:', error);
       toast.error("Hiba történt a dokumentum megnyitásakor");
     } finally {
-      setIsLoadingDocument(false);
+      setIsLoadingDocument(null);
     }
+  };
+
+  // Handle legacy document_url
+  const openLegacyDocument = async () => {
+    if (!car.document_url) return;
+    const filePath = getFilePath(car.document_url);
+    await openDocument(filePath, 'legacy');
   };
 
   return (
@@ -346,31 +368,57 @@ export function CarDetailsDialog({ car, open, onOpenChange, onNotesUpdate }: Car
 
           <Separator />
 
-          {/* Dokumentum */}
+          {/* Dokumentumok */}
           <section>
             <div className="flex items-center gap-2 mb-3">
               <FileText className="w-4 h-4 text-primary" />
               <h3 className="font-semibold text-sm uppercase tracking-wide">
-                Dokumentum
+                Dokumentumok
               </h3>
             </div>
-            <div className="pl-6">
-              {car.document_url ? (
+            <div className="pl-6 space-y-2">
+              {carDocuments.length > 0 ? (
+                carDocuments.map((doc) => (
+                  <div key={doc.id} className="flex items-center justify-between p-2 bg-muted/50 rounded-lg">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <FileText className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">{doc.file_name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {format(new Date(doc.uploaded_at), "yyyy.MM.dd HH:mm", { locale: hu })}
+                        </p>
+                      </div>
+                    </div>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => openDocument(doc.file_path, doc.id)} 
+                      disabled={isLoadingDocument === doc.id}
+                    >
+                      {isLoadingDocument === doc.id ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <ExternalLink className="w-4 h-4" />
+                      )}
+                    </Button>
+                  </div>
+                ))
+              ) : car.document_url ? (
                 <Button 
                   variant="outline" 
-                  onClick={openDocument} 
+                  onClick={openLegacyDocument} 
                   className="gap-2"
-                  disabled={isLoadingDocument}
+                  disabled={isLoadingDocument === 'legacy'}
                 >
-                  {isLoadingDocument ? (
+                  {isLoadingDocument === 'legacy' ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
                     <ExternalLink className="w-4 h-4" />
                   )}
-                  Dokumentum megtekintése
+                  Dokumentum megtekintése (régi)
                 </Button>
               ) : (
-                <p className="text-muted-foreground">Nincs feltöltve</p>
+                <p className="text-muted-foreground text-sm">Nincs feltöltve</p>
               )}
             </div>
           </section>

@@ -38,6 +38,41 @@ export type Database = {
         }
         Relationships: []
       }
+      car_documents: {
+        Row: {
+          car_id: string
+          file_name: string
+          file_path: string
+          file_type: string
+          id: string
+          uploaded_at: string
+        }
+        Insert: {
+          car_id: string
+          file_name: string
+          file_path: string
+          file_type: string
+          id?: string
+          uploaded_at?: string
+        }
+        Update: {
+          car_id?: string
+          file_name?: string
+          file_path?: string
+          file_type?: string
+          id?: string
+          uploaded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "car_documents_car_id_fkey"
+            columns: ["car_id"]
+            isOneToOne: false
+            referencedRelation: "cars"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cars: {
         Row: {
           accepts_email_only: boolean | null
@@ -111,6 +146,36 @@ export type Database = {
             referencedColumns: ["user_id"]
           },
         ]
+      }
+      personal_documents: {
+        Row: {
+          document_type: Database["public"]["Enums"]["personal_document_type"]
+          file_name: string
+          file_path: string
+          gdpr_consent_at: string
+          id: string
+          uploaded_at: string
+          user_id: string
+        }
+        Insert: {
+          document_type: Database["public"]["Enums"]["personal_document_type"]
+          file_name: string
+          file_path: string
+          gdpr_consent_at?: string
+          id?: string
+          uploaded_at?: string
+          user_id: string
+        }
+        Update: {
+          document_type?: Database["public"]["Enums"]["personal_document_type"]
+          file_name?: string
+          file_path?: string
+          gdpr_consent_at?: string
+          id?: string
+          uploaded_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -219,6 +284,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
+      personal_document_type: "personal_id" | "address_card" | "drivers_license"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -347,6 +413,11 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user"],
+      personal_document_type: [
+        "personal_id",
+        "address_card",
+        "drivers_license",
+      ],
     },
   },
 } as const

@@ -20,7 +20,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, Search, Car, Calendar, User, Eye, Mail, Clock } from "lucide-react";
+import { Loader2, Search, Car, Calendar, User, Eye, Mail, Clock, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { toast } from "sonner";
 import { format, differenceInDays, parseISO } from "date-fns";
 import { hu } from "date-fns/locale";
@@ -65,10 +65,11 @@ export default function AdminClients() {
   const [daysFilter, setDaysFilter] = useState<DaysFilter>("all");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [selectedCar, setSelectedCar] = useState<CarWithUser | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   useEffect(() => {
     fetchCars();
-  }, []);
+  }, [sortDirection]);
 
   const fetchCars = async () => {
     try {
@@ -102,7 +103,7 @@ export default function AdminClients() {
             email
           )
         `)
-        .order("anniversary_date", { ascending: true });
+        .order("anniversary_date", { ascending: sortDirection === 'asc' });
 
       if (carsError) {
         console.error("Error fetching cars:", carsError);
@@ -403,7 +404,19 @@ export default function AdminClients() {
                       <TableHead>Email</TableHead>
                       <TableHead>Autó</TableHead>
                       <TableHead>Rendszám</TableHead>
-                      <TableHead>Évforduló</TableHead>
+                      <TableHead 
+                        className="cursor-pointer hover:bg-muted transition-colors"
+                        onClick={() => setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')}
+                      >
+                        <div className="flex items-center gap-1">
+                          Évforduló
+                          {sortDirection === 'asc' ? (
+                            <ArrowUp className="w-3 h-3" />
+                          ) : (
+                            <ArrowDown className="w-3 h-3" />
+                          )}
+                        </div>
+                      </TableHead>
                       <TableHead>Hátralevő</TableHead>
                       <TableHead className="text-right">Állapot</TableHead>
                     </TableRow>

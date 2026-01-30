@@ -14,6 +14,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import DashboardHome from "./pages/DashboardHome";
 import DashboardCars from "./pages/DashboardCars";
+import DashboardDocuments from "./pages/DashboardDocuments";
 import DashboardSettings from "./pages/DashboardSettings";
 import CarDetailsPage from "./pages/CarDetailsPage";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -91,6 +92,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <CarDetailsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/documents"
+              element={
+                <ProtectedRoute>
+                  <DashboardDocuments />
                 </ProtectedRoute>
               }
             />
