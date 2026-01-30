@@ -401,7 +401,6 @@ export default function AdminClients() {
                     <TableRow>
                       <TableHead className="w-10"></TableHead>
                       <TableHead>Tulajdonos</TableHead>
-                      <TableHead>Email</TableHead>
                       <TableHead>Autó</TableHead>
                       <TableHead>Rendszám</TableHead>
                       <TableHead 
@@ -444,17 +443,17 @@ export default function AdminClients() {
                               <span className="font-medium">
                                 {car.profiles?.full_name || "N/A"}
                               </span>
+                              {car.user_email && (
+                                <span className="text-xs text-muted-foreground">
+                                  {car.user_email}
+                                </span>
+                              )}
                               {car.profiles?.phone && (
                                 <span className="text-xs text-muted-foreground">
                                   {car.profiles.phone}
                                 </span>
                               )}
                             </div>
-                          </TableCell>
-                          <TableCell>
-                            <span className="text-sm text-muted-foreground">
-                              {car.user_email || "-"}
-                            </span>
                           </TableCell>
                           <TableCell>
                             <div className="flex flex-col">
