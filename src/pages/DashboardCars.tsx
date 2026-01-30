@@ -120,7 +120,7 @@ export default function DashboardCars() {
       }
       
       const formattedData = {
-        nickname: data.nickname,
+        nickname: `${data.brand} ${data.model}`, // Auto-generate nickname from brand + model
         brand: data.brand,
         model: data.model,
         year: data.year,
@@ -282,7 +282,7 @@ export default function DashboardCars() {
       <DeleteCarDialog
         open={isDeleteOpen}
         onOpenChange={setIsDeleteOpen}
-        carNickname={deletingCar?.nickname || ""}
+        carName={deletingCar ? `${deletingCar.brand} ${deletingCar.model}` : ""}
         onConfirm={handleConfirmDelete}
         isLoading={isDeleting}
       />

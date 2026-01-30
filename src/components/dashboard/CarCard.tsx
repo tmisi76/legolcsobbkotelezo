@@ -96,9 +96,9 @@ export function CarCard({ car, daysUntilAnniversary, onEdit, onDelete, index = 0
           <CarIcon className="w-6 h-6 text-primary" />
         </motion.div>
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-foreground text-lg truncate">{car.nickname}</h3>
+          <h3 className="font-semibold text-foreground text-lg truncate">{car.brand} {car.model}</h3>
           <p className="text-sm text-muted-foreground">
-            {car.brand} {car.model}, {car.year}
+            {car.year}
           </p>
           {car.license_plate && (
             <p className="text-xs text-muted-foreground mt-0.5">

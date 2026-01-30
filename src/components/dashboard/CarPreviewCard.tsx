@@ -5,9 +5,9 @@ import { cn } from "@/lib/utils";
 
 interface CarPreviewCardProps {
   id: string;
-  nickname: string;
   brand: string;
   model: string;
+  year: number;
   daysUntilAnniversary: number;
 }
 
@@ -42,9 +42,9 @@ function getStatusInfo(days: number) {
 
 export function CarPreviewCard({
   id,
-  nickname,
   brand,
   model,
+  year,
   daysUntilAnniversary,
 }: CarPreviewCardProps) {
   const status = getStatusInfo(daysUntilAnniversary);
@@ -60,9 +60,9 @@ export function CarPreviewCard({
             <CarIcon className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <h4 className="font-semibold text-foreground">{nickname}</h4>
+            <h4 className="font-semibold text-foreground">{brand} {model}</h4>
             <p className="text-sm text-muted-foreground">
-              {brand} {model}
+              {year}
             </p>
           </div>
         </div>

@@ -177,13 +177,13 @@ export default function CarDetailsPage() {
           </Button>
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-foreground">{car.nickname}</h1>
+              <h1 className="text-2xl font-bold text-foreground">{car.brand} {car.model}</h1>
               <Badge className={cn(status.statusColor, "text-white text-sm")}>
                 {status.statusLabel}
               </Badge>
             </div>
             <p className="text-muted-foreground">
-              {car.brand} {car.model}, {car.year}
+              {car.year}
               {car.license_plate && ` • ${car.license_plate}`}
             </p>
           </div>
@@ -402,7 +402,7 @@ export default function CarDetailsPage() {
       <DeleteCarDialog
         open={isDeleteOpen}
         onOpenChange={setIsDeleteOpen}
-        carNickname={car.nickname}
+        carName={`${car.brand} ${car.model}`}
         onConfirm={handleConfirmDelete}
         isLoading={isDeleting}
       />
