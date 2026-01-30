@@ -221,25 +221,45 @@ export default function DashboardSettings() {
   const handleDeleteAccount = async (data: DeleteAccountForm) => {
     setIsDeletingAccount(true);
     try {
-      // First verify the password by trying to sign in
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: user?.email || "",
-        password: data.password,
-      });
+      // Get the current session token
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
       
-      if (signInError) {
-        toast.error("Hibás jelszó!");
+      if (!accessToken) {
+        toast.error("Nincs aktív munkamenet. Kérlek jelentkezz be újra.");
         return;
       }
 
-      // Note: Account deletion requires admin privileges or edge function
-      // For now, we'll just sign out and show a message
-      toast.error("A fiók törlését kérjük jelezd az ügyfélszolgálaton.");
-      setIsDeleteDialogOpen(false);
+      // Call the Edge Function to delete the account
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-account`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({ password: data.password }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        toast.error(result.error || "Hiba történt a fiók törlése során.");
+        return;
+      }
+
+      // Success - sign out and redirect
+      toast.success("✅ A fiókod sikeresen törölve lett.");
+      await logout();
+      window.location.href = "/";
     } catch (error) {
+      console.error("Delete account error:", error);
       toast.error("Hiba történt a fiók törlése során.");
     } finally {
       setIsDeletingAccount(false);
+      setIsDeleteDialogOpen(false);
     }
   };
 
