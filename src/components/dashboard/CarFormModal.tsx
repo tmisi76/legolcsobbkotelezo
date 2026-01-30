@@ -5,6 +5,7 @@ import { z } from "zod";
 import { format } from "date-fns";
 import { hu } from "date-fns/locale";
 import { CalendarIcon, Loader2, ArrowLeft, Upload, FileText, X, Image as ImageIcon } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -132,6 +133,7 @@ export function CarFormModal({
   isLoading: externalLoading,
 }: CarFormModalProps) {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const isEditing = !!car;
   const [step, setStep] = useState(1);
   const [savedCarId, setSavedCarId] = useState<string | null>(null);
@@ -228,6 +230,10 @@ export function CarFormModal({
           .eq('id', car.id);
         
         if (error) throw error;
+        
+        // Invalidate cache to refresh the car list
+        queryClient.invalidateQueries({ queryKey: ["cars", user.id] });
+        
         return car.id;
       } else {
         const { data: newCar, error } = await supabase
@@ -237,6 +243,10 @@ export function CarFormModal({
           .single();
         
         if (error) throw error;
+        
+        // Invalidate cache to refresh the car list
+        queryClient.invalidateQueries({ queryKey: ["cars", user.id] });
+        
         return newCar.id;
       }
     } catch (error) {
