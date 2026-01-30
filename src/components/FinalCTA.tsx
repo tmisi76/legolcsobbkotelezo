@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useInView } from "@/hooks/useInView";
 
 const FinalCTA = () => {
@@ -26,11 +27,14 @@ const FinalCTA = () => {
               Regisztrálj 30 másodperc alatt és soha ne maradj le a váltásról.
             </p>
             <Button
+              asChild
               size="xl"
               className="bg-white text-primary hover:bg-white/90 shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200"
             >
-              Regisztráció
-              <ArrowRight className="w-5 h-5" />
+              <Link to="/register">
+                Regisztráció
+                <ArrowRight className="w-5 h-5" />
+              </Link>
             </Button>
           </div>
         </div>
