@@ -1,82 +1,71 @@
 
 
-# Terv: Email cím megjelenítése a név és telefonszám között
+# Terv: Email címek megjelenítése az admin felületen
 
-## Összefoglaló
-A Tulajdonos oszlopban az email cím a név és a telefonszám **között** fog megjelenni, és az Email oszlop törlődik.
+## Probléma azonosítva
 
----
+A `profiles` táblában az `email` mező **üres minden felhasználónál** (NULL). Az email címek az `auth.users` táblában vannak tárolva, de azt az RLS szabályok miatt nem lehet közvetlenül lekérdezni.
 
-## Jelenlegi állapot
-- **Tulajdonos oszlop**: név, telefonszám (alatta)
-- **Email oszlop**: külön oszlopban
+## Megoldás
 
-## Új elrendezés
-A Tulajdonos oszlopban:
-1. **Név** (félkövér)
-2. **Email cím** (kisebb betűméret, szürke)
-3. **Telefonszám** (kisebb betűméret, szürke)
+Szinkronizálni kell az email címeket az `auth.users` táblából a `profiles` táblába:
+
+1. **Egyszeri SQL migráció**: A meglévő felhasználók email címeit bemásoljuk
+2. **Trigger frissítés**: A `handle_new_user` trigger már létezik, csak ellenőrizni kell, hogy az email-t is menti-e
 
 ---
 
-## Változtatások
+## Technikai megvalósítás
 
-### 1. Tulajdonos cella módosítása (442-452. sor)
+### 1. lépés: Meglévő email címek szinkronizálása
 
-```tsx
-<TableCell>
-  <div className="flex flex-col">
-    <span className="font-medium">
-      {car.profiles?.full_name || "N/A"}
-    </span>
-    {car.user_email && (
-      <span className="text-xs text-muted-foreground">
-        {car.user_email}
-      </span>
-    )}
-    {car.profiles?.phone && (
-      <span className="text-xs text-muted-foreground">
-        {car.profiles.phone}
-      </span>
-    )}
-  </div>
-</TableCell>
+```sql
+-- Frissítsük a profiles táblát az auth.users email címeivel
+UPDATE public.profiles p
+SET email = u.email
+FROM auth.users u
+WHERE p.user_id = u.id
+  AND p.email IS NULL;
 ```
 
-### 2. Email oszlop törlése
+### 2. lépés: Handle new user trigger ellenőrzése
 
-**Fejléc törlése** (404. sor):
-```tsx
-// Törlendő:
-<TableHead>Email</TableHead>
-```
+A trigger-nek tartalmaznia kell az email mentését is:
 
-**Cella törlése** (454-458. sor):
-```tsx
-// Törlendő:
-<TableCell>
-  <span className="text-sm text-muted-foreground">
-    {car.user_email || "-"}
-  </span>
-</TableCell>
+```sql
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  INSERT INTO public.profiles (user_id, full_name, email)
+  VALUES (
+    new.id, 
+    COALESCE(new.raw_user_meta_data->>'full_name', ''),
+    new.email
+  );
+  RETURN new;
+END;
+$$;
 ```
 
 ---
 
-## Módosítandó fájl
+## Módosítások
 
-| Fájl | Változtatás |
-|------|-------------|
-| `src/pages/AdminClients.tsx` | Tulajdonos oszlopban email a név és telefon közé, Email oszlop törlése |
+| Típus | Leírás |
+|-------|--------|
+| SQL migráció | Email szinkronizálás auth.users → profiles |
+| SQL migráció | handle_new_user trigger frissítése (ha szükséges) |
 
 ---
 
 ## Eredmény
 
-A Tulajdonos oszlopban a sorrend:
-1. **Teszt József** (név - félkövér)
-2. tesztjozsef@email.com (email - kisebb, szürke)
-3. +36309373789 (telefon - kisebb, szürke)
-
-Így minden fontos kapcsolatfelvételi adat egy oszlopban látható, a táblázat kompaktabb lesz.
+A migráció után:
+- Minden meglévő felhasználó `profiles.email` mezője ki lesz töltve
+- Új felhasználók regisztrációjakor automatikusan mentésre kerül az email
+- Az admin felületen megjelenik az email a Tulajdonos oszlopban
 
