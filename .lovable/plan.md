@@ -1,71 +1,83 @@
 
 
-# Terv: Email címek megjelenítése az admin felületen
+# Terv: Fiók törlés funkció implementálása
 
-## Probléma azonosítva
-
-A `profiles` táblában az `email` mező **üres minden felhasználónál** (NULL). Az email címek az `auth.users` táblában vannak tárolva, de azt az RLS szabályok miatt nem lehet közvetlenül lekérdezni.
-
-## Megoldás
-
-Szinkronizálni kell az email címeket az `auth.users` táblából a `profiles` táblába:
-
-1. **Egyszeri SQL migráció**: A meglévő felhasználók email címeit bemásoljuk
-2. **Trigger frissítés**: A `handle_new_user` trigger már létezik, csak ellenőrizni kell, hogy az email-t is menti-e
+## Összefoglaló
+A felhasználók képesek lesznek teljesen törölni a fiókjukat, beleértve minden autót, dokumentumot és személyes adatot.
 
 ---
 
-## Technikai megvalósítás
+## Műszaki megvalósítás
 
-### 1. lépés: Meglévő email címek szinkronizálása
+### 1. Új Edge Function: `delete-account`
 
-```sql
--- Frissítsük a profiles táblát az auth.users email címeivel
-UPDATE public.profiles p
-SET email = u.email
-FROM auth.users u
-WHERE p.user_id = u.id
-  AND p.email IS NULL;
+Létrehozunk egy új Edge Function-t, ami:
+1. Ellenőrzi a felhasználó jelszavát
+2. Törli az összes kapcsolódó adatot a táblákból
+3. Törli a felhasználót az `auth.users` táblából
+
+```
+supabase/functions/delete-account/index.ts
 ```
 
-### 2. lépés: Handle new user trigger ellenőrzése
+**Működés:**
+- A felhasználó elküldi a jelszavát
+- Az Edge Function ellenőrzi a jelszót (`signInWithPassword`)
+- Ha helyes, a `service_role` kulccsal törli:
+  - `car_documents` (az autókon keresztül)
+  - `personal_documents`
+  - `reminder_logs` (az autókon keresztül)
+  - `cars`
+  - `profiles`
+  - `user_roles`
+  - `auth.users` (a felhasználó maga)
 
-A trigger-nek tartalmaznia kell az email mentését is:
+### 2. Frontend módosítás: `DashboardSettings.tsx`
 
-```sql
-CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS trigger
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-  INSERT INTO public.profiles (user_id, full_name, email)
-  VALUES (
-    new.id, 
-    COALESCE(new.raw_user_meta_data->>'full_name', ''),
-    new.email
-  );
-  RETURN new;
-END;
-$$;
+A `handleDeleteAccount` függvényt frissítjük:
+- Meghívja az Edge Function-t
+- Sikeres törlés esetén kijelentkezteti a felhasználót
+- Átirányít a főoldalra
+
+---
+
+## Törlési sorrend (fontos a foreign key-ek miatt)
+
+```text
+1. car_documents (car_id referencia)
+2. reminder_logs (car_id referencia)
+3. personal_documents (user_id referencia)
+4. cars (user_id referencia)
+5. user_roles (user_id referencia)
+6. profiles (user_id referencia)
+7. auth.users (a felhasználó maga)
 ```
 
 ---
 
-## Módosítások
+## Biztonsági szempontok
 
-| Típus | Leírás |
-|-------|--------|
-| SQL migráció | Email szinkronizálás auth.users → profiles |
-| SQL migráció | handle_new_user trigger frissítése (ha szükséges) |
+- Jelszó megerősítés kötelező
+- Csak a saját fiókot lehet törölni (JWT ellenőrzés)
+- A törlés visszavonhatatlan
+- Service role kulcs csak a szerveren használt
+
+---
+
+## Módosítandó fájlok
+
+| Fájl | Változtatás |
+|------|-------------|
+| `supabase/functions/delete-account/index.ts` | Új Edge Function létrehozása |
+| `supabase/config.toml` | JWT verifikáció kikapcsolása |
+| `src/pages/DashboardSettings.tsx` | Edge Function hívás implementálása |
 
 ---
 
 ## Eredmény
 
-A migráció után:
-- Minden meglévő felhasználó `profiles.email` mezője ki lesz töltve
-- Új felhasználók regisztrációjakor automatikusan mentésre kerül az email
-- Az admin felületen megjelenik az email a Tulajdonos oszlopban
+A felhasználó:
+1. Beírja a jelszavát a törlés megerősítéséhez
+2. Az összes adata véglegesen törlődik
+3. Kijelentkezik és a főoldalra kerül
 
