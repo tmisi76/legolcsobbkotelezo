@@ -1,94 +1,92 @@
 
-# Átfogó fejlesztési terv: Email megerősítés, megtakarítás eltávolítás és admin javítások
+# Terv: Dokumentumkezelés bővítése, személyes dokumentumok és admin rendezés
 
 ## Összefoglaló
-A felhasználó visszajelzése alapján több fontos módosítást kell végrehajtani: email megerősítés bekapcsolása, megtakarítás kalkulátor eltávolítása, admin felület javítása (email megjelenítés), és az időszaki áttekintés dátumainak javítása. Az egyéb javaslatok (személyes dokumentumok, több dokumentum feltöltése) későbbi fázisban kerülnének megvalósításra.
+A kérések alapján három fő fejlesztési területet azonosítottam:
+1. Több dokumentum feltöltése autónként (cserélhetőség és megtekintés)
+2. Személyes dokumentumok fül (személyi, lakcím, jogsi) GDPR hozzájárulással
+3. Admin oldalon rendezés évforduló alapján
 
 ---
 
-## 1. fázis: Email megerősítés regisztrációnál (PRIORITÁS: KRITIKUS)
+## 1. fázis: Több dokumentum feltöltése autónként
 
-### Probléma
-Jelenleg bárki bármilyen email címmel regisztrálhat ellenőrzés nélkül, ami adatvédelmi kockázat.
+### Jelenlegi állapot
+- Jelenleg csak 1 dokumentum tölthető fel autónként (`document_url` oszlop a `cars` táblában)
+- Az autó mentése után nem lehet dokumentumot cserélni vagy újat feltölteni
+- Nincs lehetőség a feltöltött dokumentumok megtekintésére
 
 ### Megoldás
-Az email megerősítés már be van kapcsolva a Lovable Cloud-ban (a `translateAuthError` függvényben van "Email not confirmed" fordítás), DE a regisztrációs üzenetben nem jelezzük az ügyfélnek, hogy meg kell erősítenie az email-t.
+Új `car_documents` tábla létrehozása az autó-dokumentumok kezelésére:
 
-### Változtatások
-- **`src/pages/Register.tsx`**: Sikeres regisztráció után jelezni, hogy email megerősítés szükséges
-- A felhasználót nem irányítjuk a login oldalra, hanem egy megerősítő üzenetet mutatunk
+| Oszlop | Típus | Leírás |
+|--------|-------|--------|
+| id | uuid | Elsődleges kulcs |
+| car_id | uuid | Hivatkozás az autóra |
+| file_path | text | Storage elérési út |
+| file_name | text | Eredeti fájlnév |
+| file_type | text | MIME típus |
+| uploaded_at | timestamp | Feltöltés ideje |
 
----
+### Érintett komponensek
 
-## 2. fázis: Becsült megtakarítás kalkulátor eltávolítása (PRIORITÁS: MAGAS)
+**Új komponensek:**
+- `src/components/dashboard/DocumentManager.tsx` - Dokumentumok listázása, feltöltése, törlése
 
-### Érintett helyek és változtatások
-
-| Helyszín | Változtatás |
-|----------|-------------|
-| Landing page - `SavingsCalculator` | Teljes komponens törlése, Index.tsx-ből eltávolítás |
-| Dashboard Home - StatCard | "Becsült megtakarítás" kártya eltávolítása |
-| Autó részletek - `CarDetailsPage` | Megtakarítási potenciál kártya eltávolítása |
-| Autó kártya - `CarCard` | Becsült megtakarítás sor eltávolítása |
-| Admin details - `CarDetailsDialog` | Becsült megtakarítás mező eltávolítása |
-| Social proof - `SocialProof` | "Becsült megtakarítás" statisztika eltávolítása |
-| useCars hook | `getTotalSavings` funkció eltávolítása |
-| Edge function | `estimate-savings` törlése |
-
-### Törlendő fájlok
-- `src/components/SavingsCalculator.tsx`
-- `supabase/functions/estimate-savings/index.ts`
+**Módosítandó komponensek:**
+- `CarFormModal.tsx` - Többszörös fájl feltöltés (step 3)
+- `CarDetailsPage.tsx` - Dokumentum szekció bővítése (lista + feltöltés gomb)
+- `CarDetailsDialog.tsx` (admin) - Több dokumentum megjelenítése
 
 ---
 
-## 3. fázis: Admin felület - Email cím megjelenítése (PRIORITÁS: MAGAS)
+## 2. fázis: Személyes dokumentumok fül
 
-### Probléma
-Az admin felületen az ügyfelek email címe nem látszik, mert az `auth.users` táblából nem lehet közvetlenül lekérdezni.
+### Új funkció
+Felhasználók feltölthetik személyes irataikat (személyi, lakcím, jogosítvány) opcionálisan, GDPR hozzájárulással.
+
+### Adatbázis
+Új `personal_documents` tábla:
+
+| Oszlop | Típus | Leírás |
+|--------|-------|--------|
+| id | uuid | Elsődleges kulcs |
+| user_id | uuid | Hivatkozás a felhasználóra |
+| document_type | enum | personal_id, address_card, drivers_license |
+| file_path | text | Storage elérési út |
+| file_name | text | Eredeti fájlnév |
+| gdpr_consent_at | timestamp | GDPR hozzájárulás időpontja |
+| uploaded_at | timestamp | Feltöltés időpontja |
+
+### GDPR hozzájárulás
+A feltöltés előtt kötelező checkbox:
+> "Hozzájárulok, hogy a H-Kontakt Group Kft. a feltöltött személyes dokumentumaimat a biztosítási ügyintézés céljából kezelje. A hozzájárulást bármikor visszavonhatom."
+
+### Új oldalak és komponensek
+- `src/pages/DashboardDocuments.tsx` - Személyes dokumentumok oldal
+- Navigáció bővítése a `DashboardLayout.tsx`-ben
+
+### Storage
+Új privát bucket: `personal-documents`
+- RLS: csak a tulajdonos és adminok férhetnek hozzá
+
+---
+
+## 3. fázis: Admin rendezés évforduló alapján
+
+### Jelenlegi állapot
+Az admin oldal már rendezi az autókat évforduló szerint (ascending), DE nincs lehetőség a rendezés irányának megváltoztatására.
 
 ### Megoldás
-Az email címet a `profiles` táblában kell tárolni (új `email` oszlop), amit a `handle_new_user` trigger automatikusan kitölt regisztrációkor.
+Rendezés irány váltó gomb hozzáadása a táblázat fejlécéhez:
 
-### Változtatások
-1. **Adatbázis migráció**: 
-   - Új `email` oszlop a `profiles` táblában
-   - `handle_new_user` trigger frissítése
-   - Meglévő felhasználók email címének migrálása
+| Elem | Funkció |
+|------|---------|
+| Rendezés ikon | Évforduló oszlopnál kattintható |
+| Állapotjelző | Felfelé/lefelé nyíl az aktuális irány jelzésére |
 
-2. **`src/pages/AdminClients.tsx`**: 
-   - Profile-ból email lekérdezése
-   - Email oszlop megjelenítése
-
-3. **`src/components/admin/CarDetailsDialog.tsx`**: 
-   - Email megjelenítés javítása
-
----
-
-## 4. fázis: Időszaki áttekintés javítása (PRIORITÁS: KÖZEPES)
-
-### Probléma
-A timeline jelenleg az évfordulót is mutatja, de az utána lévő napoknak nincs értelme.
-
-### Helyes mérföldkövek
-| Nap | Leírás |
-|-----|--------|
-| 60 nap | Váltási időszak kezdete - emlékeztető email |
-| 50 nap | 1. emlékeztető - váltásig még 20 nap |
-| 40 nap | 2. emlékeztető - sürgős, váltásig még 10 nap |
-| 30 nap | Váltási időszak vége |
-
-### Változtatások
-- **`src/components/dashboard/InsuranceTimeline.tsx`**: Évforduló sor eltávolítása, leírások pontosítása
-- **`src/pages/DashboardSettings.tsx`**: Az emlékeztető beállítások már helyesek (60, 50, 40)
-
----
-
-## 5. fázis: Egyéb javaslatok (KÉSŐBBI FÁZIS)
-
-A következő funkciókat később implementáljuk:
-- Személyes dokumentumok feltöltése (személyi, lakcím, jogsi) GDPR hozzájárulással
-- Több dokumentum feltöltése autónként
-- Dokumentum csere/megtekintés később is
+### Érintett fájl
+- `AdminClients.tsx` - Rendezés state és logika
 
 ---
 
@@ -97,100 +95,161 @@ A következő funkciókat később implementáljuk:
 ### Adatbázis migráció
 
 ```sql
--- Új email oszlop a profiles táblában
-ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS email TEXT;
+-- Autó dokumentumok tábla
+CREATE TABLE public.car_documents (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  car_id UUID NOT NULL REFERENCES public.cars(id) ON DELETE CASCADE,
+  file_path TEXT NOT NULL,
+  file_name TEXT NOT NULL,
+  file_type TEXT NOT NULL,
+  uploaded_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 
--- Email cím kitöltése meglévő felhasználóknál (auth.users-ből)
-UPDATE public.profiles p
-SET email = (
-  SELECT email FROM auth.users u WHERE u.id = p.user_id
-)
-WHERE p.email IS NULL;
+ALTER TABLE public.car_documents ENABLE ROW LEVEL SECURITY;
 
--- Trigger frissítése a jövőbeli regisztrációkhoz
-CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS trigger
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path TO 'public'
-AS $$
-BEGIN
-    INSERT INTO public.profiles (user_id, full_name, email)
-    VALUES (
-      NEW.id, 
-      COALESCE(NEW.raw_user_meta_data->>'full_name', ''),
-      NEW.email
-    );
-    UPDATE public.app_stats SET total_users = total_users + 1 WHERE id = 1;
-    RETURN NEW;
-END;
-$$;
+-- RLS policies
+CREATE POLICY "Users can view their own car documents"
+  ON public.car_documents FOR SELECT
+  USING (EXISTS (
+    SELECT 1 FROM public.cars WHERE cars.id = car_documents.car_id AND cars.user_id = auth.uid()
+  ));
+
+CREATE POLICY "Users can insert documents for their own cars"
+  ON public.car_documents FOR INSERT
+  WITH CHECK (EXISTS (
+    SELECT 1 FROM public.cars WHERE cars.id = car_documents.car_id AND cars.user_id = auth.uid()
+  ));
+
+CREATE POLICY "Users can delete their own car documents"
+  ON public.car_documents FOR DELETE
+  USING (EXISTS (
+    SELECT 1 FROM public.cars WHERE cars.id = car_documents.car_id AND cars.user_id = auth.uid()
+  ));
+
+CREATE POLICY "Admins can view all car documents"
+  ON public.car_documents FOR SELECT
+  USING (has_role(auth.uid(), 'admin'::app_role));
+
+-- Személyes dokumentumok tábla
+CREATE TYPE document_type AS ENUM ('personal_id', 'address_card', 'drivers_license');
+
+CREATE TABLE public.personal_documents (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  document_type document_type NOT NULL,
+  file_path TEXT NOT NULL,
+  file_name TEXT NOT NULL,
+  gdpr_consent_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  uploaded_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(user_id, document_type)
+);
+
+ALTER TABLE public.personal_documents ENABLE ROW LEVEL SECURITY;
+
+-- RLS policies
+CREATE POLICY "Users can manage their own personal documents"
+  ON public.personal_documents FOR ALL
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Admins can view all personal documents"
+  ON public.personal_documents FOR SELECT
+  USING (has_role(auth.uid(), 'admin'::app_role));
 ```
 
-### Register.tsx módosítás
+### Storage bucket
 
-A sikeres regisztráció után nem a login oldalra irányítunk, hanem megerősítő üzenetet mutatunk:
+```sql
+-- Személyes dokumentumok bucket
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('personal-documents', 'personal-documents', false);
+
+-- Storage RLS (insurance-documents már létezik)
+CREATE POLICY "Users can manage their own personal docs"
+  ON storage.objects FOR ALL
+  USING (bucket_id = 'personal-documents' AND auth.uid()::text = (storage.foldername(name))[1]);
+
+CREATE POLICY "Admins can view all personal docs"
+  ON storage.objects FOR SELECT
+  USING (bucket_id = 'personal-documents' AND has_role(auth.uid(), 'admin'::app_role));
+```
+
+### Új navigációs elem (DashboardLayout.tsx)
+
 ```tsx
-// Sikeres regisztráció esetén
-toast({
-  title: "✉️ Kérlek erősítsd meg az email címed!",
-  description: "Küldtünk egy megerősítő linket az email címedre. Kattints rá a regisztráció befejezéséhez.",
-  duration: 10000,
-});
-// Maradunk a regisztrációs oldalon, nem navigálunk
+const baseNavItems = [
+  { path: "/dashboard", label: "Áttekintés", icon: Home },
+  { path: "/dashboard/cars", label: "Autóim", icon: Car },
+  { path: "/dashboard/documents", label: "Dokumentumaim", icon: FileText }, // ÚJ
+  { path: "/dashboard/settings", label: "Beállítások", icon: Settings },
+];
 ```
 
-### AdminClients.tsx módosítás
+### CarDetailsPage dokumentum szekció
 
 ```tsx
-// A profiles lekérdezéshez hozzáadjuk az email-t
-profiles!cars_user_id_fkey (
-  full_name,
-  phone,
-  email
-)
-
-// Az email oszlop megjelenítése a táblázatban
-<TableCell>
-  <span className="text-sm">
-    {car.profiles?.email || "-"}
-  </span>
-</TableCell>
+// Új szekció a meglévő megjegyzések mellett
+<div className="bg-card rounded-xl border border-border p-5">
+  <div className="flex items-center justify-between mb-4">
+    <div className="flex items-center gap-2">
+      <FileText className="w-5 h-5 text-primary" />
+      <h3 className="font-semibold text-foreground">Dokumentumok</h3>
+    </div>
+    <Button variant="outline" size="sm" onClick={() => setIsDocUploadOpen(true)}>
+      <Upload className="w-4 h-4 mr-2" />
+      Feltöltés
+    </Button>
+  </div>
+  <DocumentList carId={car.id} />
+</div>
 ```
 
-### Törlendő fájlok listája
+### Admin rendezés (AdminClients.tsx)
 
-1. `src/components/SavingsCalculator.tsx`
-2. `supabase/functions/estimate-savings/index.ts` (ha létezik)
+```tsx
+const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
-### Módosítandó fájlok összefoglalója
+// A lekérdezésben
+.order("anniversary_date", { ascending: sortDirection === 'asc' })
 
-| Fájl | Változtatás |
-|------|-------------|
-| `src/pages/Register.tsx` | Email megerősítés üzenet |
-| `src/pages/Index.tsx` | SavingsCalculator eltávolítása |
-| `src/pages/DashboardHome.tsx` | Megtakarítás StatCard eltávolítása |
-| `src/pages/CarDetailsPage.tsx` | Megtakarítási potenciál kártya törlése |
-| `src/components/dashboard/CarCard.tsx` | Becsült megtakarítás sor törlése |
-| `src/components/admin/CarDetailsDialog.tsx` | Becsült megtakarítás mező törlése, email javítás |
-| `src/components/SocialProof.tsx` | Megtakarítás statisztika eltávolítása |
-| `src/hooks/useCars.ts` | getTotalSavings funkció törlése |
-| `src/pages/AdminClients.tsx` | Email megjelenítés |
-| `src/components/dashboard/InsuranceTimeline.tsx` | Évforduló sor eltávolítása |
-| `supabase/config.toml` | estimate-savings funkció törlése |
+// Táblázat fejléc
+<TableHead 
+  className="cursor-pointer hover:bg-muted"
+  onClick={() => setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')}
+>
+  <div className="flex items-center gap-1">
+    Évforduló
+    {sortDirection === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
+  </div>
+</TableHead>
+```
 
 ---
 
-## Megjegyzések a nem implementált funkciókhoz
+## Módosítandó/létrehozandó fájlok összefoglalója
 
-### Beállítások mentés hiba (fehér képernyő)
-A user által említett hibát nem tudtam reprodukálni a kódból, a `DashboardSettings.tsx` megfelelően van implementálva. Ez lehet böngésző cache probléma vagy átmeneti hiba volt.
+| Fájl | Művelet |
+|------|---------|
+| `src/pages/DashboardDocuments.tsx` | Létrehozás |
+| `src/components/dashboard/DocumentManager.tsx` | Létrehozás |
+| `src/components/dashboard/DocumentList.tsx` | Létrehozás |
+| `src/components/dashboard/DashboardLayout.tsx` | Módosítás (nav) |
+| `src/components/dashboard/CarFormModal.tsx` | Módosítás (multi upload) |
+| `src/pages/CarDetailsPage.tsx` | Módosítás (dokumentum szekció) |
+| `src/pages/AdminClients.tsx` | Módosítás (rendezés) |
+| `src/components/admin/CarDetailsDialog.tsx` | Módosítás (több doksi) |
+| `src/App.tsx` | Módosítás (új route) |
+| `src/types/database.ts` | Módosítás (új típusok) |
 
-### Session persistence
-Ez a működés helyes és várt – a Supabase automatikusan megőrzi a session-t localStorage-ban. Ez szinte minden modern webalkalmazásnál így működik.
+---
 
-### Autó becenév
-Ez marad, mert hasznos azonosító az ügyfélnek, ha több autója is van.
+## Megvalósítási sorrend
 
-### Évjárat lenyíló
-Ez már meg lett javítva az előző üzenetben.
+1. Adatbázis migráció (táblák + storage bucket)
+2. Típusdefiníciók frissítése
+3. DocumentManager és DocumentList komponensek
+4. CarFormModal többszörös feltöltés
+5. CarDetailsPage dokumentum szekció
+6. DashboardDocuments oldal (személyes dokumentumok)
+7. Admin oldal rendezés
+8. Admin dialógban több dokumentum megjelenítése
+
