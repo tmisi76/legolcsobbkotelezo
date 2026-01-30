@@ -26,9 +26,6 @@ interface CarCardProps {
 
 export function CarCard({ car, daysUntilAnniversary, onEdit, onDelete, index = 0 }: CarCardProps) {
   const status = calculateCarStatus(car.anniversary_date);
-  const estimatedSavings = car.current_annual_fee 
-    ? Math.round(car.current_annual_fee * 0.18) 
-    : null;
 
   const isUrgent = status.status === 'switching_period' || status.status === 'expired';
 
@@ -138,10 +135,10 @@ export function CarCard({ car, daysUntilAnniversary, onEdit, onDelete, index = 0
         </p>
       </motion.div>
 
-      {/* Fee Info */}
+      {/* Fee Info - without estimated savings */}
       {car.current_annual_fee && (
         <motion.div 
-          className="space-y-1 text-sm mb-4"
+          className="text-sm mb-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: index * 0.08 + 0.3 }}
@@ -152,14 +149,6 @@ export function CarCard({ car, daysUntilAnniversary, onEdit, onDelete, index = 0
               {formatHungarianNumber(car.current_annual_fee)} Ft/év
             </span>
           </div>
-          {estimatedSavings && (
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Becsült megtakarítás:</span>
-              <span className="font-medium text-secondary">
-                ~{formatHungarianNumber(estimatedSavings)} Ft
-              </span>
-            </div>
-          )}
         </motion.div>
       )}
 

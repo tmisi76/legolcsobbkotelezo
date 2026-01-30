@@ -58,15 +58,6 @@ export function useCars() {
     return nearest ? { car: nearest, days: nearestDays } : null;
   };
 
-  // Calculate total potential savings (18% of total fees)
-  const getTotalSavings = () => {
-    const totalFees = cars.reduce(
-      (sum, car) => sum + (car.current_annual_fee || 0),
-      0
-    );
-    return Math.round(totalFees * 0.18);
-  };
-
   return {
     cars,
     isLoading,
@@ -78,6 +69,5 @@ export function useCars() {
     isUpdating: updateCarMutation.isPending,
     isDeleting: deleteCarMutation.isPending,
     getNextExpiry,
-    getTotalSavings,
   };
 }

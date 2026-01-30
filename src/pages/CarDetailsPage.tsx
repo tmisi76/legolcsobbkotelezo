@@ -9,9 +9,6 @@ import {
   Pencil, 
   Trash2, 
   Calendar,
-  Gauge,
-  CreditCard,
-  TrendingUp,
   FileText,
   Mail,
   CheckCircle2,
@@ -115,10 +112,6 @@ export default function CarDetailsPage() {
   }
 
   const status = calculateCarStatus(car.anniversary_date);
-  const estimatedSavings = car.current_annual_fee 
-    ? Math.round(car.current_annual_fee * 0.18) 
-    : 0;
-  const fiveYearSavings = estimatedSavings * 5;
 
   const handleFormSubmit = async (data: any) => {
     try {
@@ -290,47 +283,9 @@ export default function CarDetailsPage() {
       </div>
 
       {/* Second Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        {/* Savings Card */}
-        <div className="bg-secondary/10 rounded-xl border border-secondary/20 p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <TrendingUp className="w-5 h-5 text-secondary" />
-            <h3 className="font-semibold text-foreground">Megtakarítási potenciál</h3>
-          </div>
-          {car.current_annual_fee ? (
-            <div className="space-y-4">
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Becsült éves megtakarítás</p>
-                <p className="text-3xl font-bold text-secondary">
-                  ~{formatHungarianNumber(estimatedSavings)} Ft
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">5 éves megtakarítás</p>
-                <p className="text-xl font-semibold text-secondary">
-                  ~{formatHungarianNumber(fiveYearSavings)} Ft
-                </p>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                * Becslés a jelenlegi díj 18%-a alapján
-              </p>
-            </div>
-          ) : (
-            <div className="text-center py-4">
-              <p className="text-muted-foreground mb-2">
-                Add meg a jelenlegi díjat a megtakarítás becsléséhez
-              </p>
-              <Button variant="outline" size="sm" onClick={() => setIsEditOpen(true)}>
-                Díj megadása
-              </Button>
-            </div>
-          )}
-        </div>
-
-        {/* Timeline */}
-        <div className="lg:col-span-2">
-          <InsuranceTimeline anniversaryDate={car.anniversary_date} />
-        </div>
+      <div className="grid grid-cols-1 gap-6 mb-6">
+        {/* Timeline - now full width */}
+        <InsuranceTimeline anniversaryDate={car.anniversary_date} />
       </div>
 
       {/* Notes & Reminder History */}

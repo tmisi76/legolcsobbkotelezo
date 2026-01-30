@@ -5,6 +5,3 @@ verify_jwt = false
 
 [functions.check-reminders]
 verify_jwt = false
-
-[functions.estimate-savings]
-verify_jwt = true

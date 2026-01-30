@@ -6,8 +6,8 @@ import { StatCard } from "@/components/dashboard/StatCard";
 import { CarPreviewCard } from "@/components/dashboard/CarPreviewCard";
 import { QuickTips } from "@/components/dashboard/QuickTips";
 import { EmptyState } from "@/components/dashboard/EmptyState";
-import { formatHungarianNumber, getDaysUntilAnniversary } from "@/lib/database";
-import { Car, TrendingUp, Calendar } from "lucide-react";
+import { getDaysUntilAnniversary } from "@/lib/database";
+import { Car, Calendar } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -20,10 +20,9 @@ function getExpiryVariant(days: number | undefined): "default" | "success" | "wa
 
 export default function DashboardHome() {
   const { profile } = useAuth();
-  const { cars, isLoading, getNextExpiry, getTotalSavings } = useCars();
+  const { cars, isLoading, getNextExpiry } = useCars();
 
   const nextExpiry = getNextExpiry();
-  const totalSavings = getTotalSavings();
   const recentCars = cars.slice(0, 3);
 
   return (
@@ -37,7 +36,7 @@ export default function DashboardHome() {
       />
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <StatCard
           icon={<Car className="w-6 h-6" />}
           label="Regisztrált autó"
@@ -58,20 +57,6 @@ export default function DashboardHome() {
           }
           subtext={nextExpiry?.car.nickname}
           variant={getExpiryVariant(nextExpiry?.days)}
-          isLoading={isLoading}
-        />
-        <StatCard
-          icon={<TrendingUp className="w-6 h-6" />}
-          label="Becsült megtakarítás"
-          value={
-            isLoading
-              ? "-"
-              : totalSavings > 0
-              ? `${formatHungarianNumber(totalSavings)} Ft`
-              : "0 Ft"
-          }
-          subtext={totalSavings > 0 ? "évente" : undefined}
-          variant="success"
           isLoading={isLoading}
         />
       </div>
