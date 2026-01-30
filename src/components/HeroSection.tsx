@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { ArrowRight, Check, Lock, Mail, Car, Calendar, Bell, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -169,16 +170,23 @@ const HeroSection = () => {
               whileHover={{ scale: 1.02, y: -2 }}
               whileTap={{ scale: 0.98 }}
             >
-              <Button variant="hero" size="xl" className="w-full sm:w-auto">
-                Ingyenes regisztráció
-                <ArrowRight className="w-5 h-5" />
+              <Button asChild variant="hero" size="xl" className="w-full sm:w-auto">
+                <Link to="/register">
+                  Ingyenes regisztráció
+                  <ArrowRight className="w-5 h-5" />
+                </Link>
               </Button>
             </motion.div>
             <motion.div
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
-              <Button variant="hero-outline" size="xl" className="w-full sm:w-auto">
+              <Button 
+                variant="hero-outline" 
+                size="xl" 
+                className="w-full sm:w-auto"
+                onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
+              >
                 Megnézem hogyan működik
               </Button>
             </motion.div>
