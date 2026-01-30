@@ -14,7 +14,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Users,
-  Shield
+  Shield,
+  FileText
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -26,6 +27,7 @@ interface DashboardLayoutProps {
 const baseNavItems = [
   { path: "/dashboard", label: "Áttekintés", icon: Home },
   { path: "/dashboard/cars", label: "Autóim", icon: Car },
+  { path: "/dashboard/documents", label: "Dokumentumaim", icon: FileText },
   { path: "/dashboard/settings", label: "Beállítások", icon: Settings },
 ];
 

@@ -50,6 +50,27 @@ export interface AppStats {
   updated_at: string;
 }
 
+export interface CarDocument {
+  id: string;
+  car_id: string;
+  file_path: string;
+  file_name: string;
+  file_type: string;
+  uploaded_at: string;
+}
+
+export type PersonalDocumentType = 'personal_id' | 'address_card' | 'drivers_license';
+
+export interface PersonalDocument {
+  id: string;
+  user_id: string;
+  document_type: PersonalDocumentType;
+  file_path: string;
+  file_name: string;
+  gdpr_consent_at: string;
+  uploaded_at: string;
+}
+
 // Input types for creating/updating
 export type ProfileInsert = Omit<Profile, 'id' | 'created_at' | 'updated_at'>;
 export type ProfileUpdate = Partial<Omit<Profile, 'id' | 'user_id' | 'created_at' | 'updated_at'>>;

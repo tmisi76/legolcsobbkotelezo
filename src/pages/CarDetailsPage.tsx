@@ -12,7 +12,8 @@ import {
   FileText,
   Mail,
   CheckCircle2,
-  Clock
+  Clock,
+  Upload
 } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { CountdownDisplay } from "@/components/dashboard/CountdownDisplay";
@@ -20,6 +21,7 @@ import { InsuranceTimeline } from "@/components/dashboard/InsuranceTimeline";
 import { StatusProgressBar } from "@/components/dashboard/StatusProgressBar";
 import { CarFormModal } from "@/components/dashboard/CarFormModal";
 import { DeleteCarDialog } from "@/components/dashboard/DeleteCarDialog";
+import { CarDocumentList } from "@/components/dashboard/CarDocumentList";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -288,8 +290,17 @@ export default function CarDetailsPage() {
         <InsuranceTimeline anniversaryDate={car.anniversary_date} />
       </div>
 
-      {/* Notes & Reminder History */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Documents & Notes & Reminder History */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Documents */}
+        <div className="bg-card rounded-xl border border-border p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Upload className="w-5 h-5 text-primary" />
+            <h3 className="font-semibold text-foreground">Dokumentumok</h3>
+          </div>
+          <CarDocumentList carId={car.id} />
+        </div>
+
         {/* Notes */}
         <div className="bg-card rounded-xl border border-border p-5">
           <div className="flex items-center justify-between mb-4">
