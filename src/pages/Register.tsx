@@ -50,6 +50,8 @@ const RegisterPage = () => {
     },
   });
 
+  const [registrationSuccess, setRegistrationSuccess] = useState(false);
+
   const onSubmit = async (data: RegisterFormData) => {
     setIsLoading(true);
     try {
@@ -62,16 +64,57 @@ const RegisterPage = () => {
           description: error.message,
         });
       } else {
+        setRegistrationSuccess(true);
         toast({
-          title: "Sikeres regisztráció!",
-          description: "Jelentkezz be a folytatáshoz.",
+          title: "✉️ Kérlek erősítsd meg az email címed!",
+          description: "Küldtünk egy megerősítő linket az email címedre. Kattints rá a regisztráció befejezéséhez.",
+          duration: 10000,
         });
-        navigate("/login");
       }
     } finally {
       setIsLoading(false);
     }
   };
+
+  // Show success screen after registration
+  if (registrationSuccess) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6 bg-background">
+        <div className="w-full max-w-md text-center">
+          {/* Logo */}
+          <Link to="/" className="flex items-center gap-2 mb-8 justify-center group">
+            <div className="relative">
+              <Shield className="w-8 h-8 text-primary transition-transform duration-200 group-hover:scale-110" />
+              <Car className="w-4 h-4 text-primary-light absolute -bottom-0.5 -right-0.5" />
+            </div>
+            <span className="font-bold text-xl text-foreground">
+              Legolcsóbb<span className="text-primary">Kötelező</span>
+            </span>
+          </Link>
+
+          <div className="bg-card rounded-xl border border-border p-8">
+            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Mail className="w-8 h-8 text-primary" />
+            </div>
+            <h1 className="text-2xl font-bold text-foreground mb-4">
+              Erősítsd meg az email címed!
+            </h1>
+            <p className="text-muted-foreground mb-6">
+              Küldtünk egy megerősítő linket az email címedre. Kattints rá a regisztráció befejezéséhez.
+            </p>
+            <p className="text-sm text-muted-foreground mb-6">
+              Ha nem látod az emailt, nézd meg a spam mappát is.
+            </p>
+            <Link to="/login">
+              <Button variant="outline" className="w-full">
+                Vissza a bejelentkezéshez
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex">

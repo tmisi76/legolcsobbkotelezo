@@ -3,7 +3,7 @@ import { format, differenceInDays, addDays } from "date-fns";
 import { hu } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { getTimelineMarkers } from "@/lib/carStatus";
-import { Check, AlertTriangle, Clock, Calendar } from "lucide-react";
+import { Check, AlertTriangle, Clock } from "lucide-react";
 
 interface InsuranceTimelineProps {
   anniversaryDate: string;
@@ -31,7 +31,7 @@ export function InsuranceTimeline({ anniversaryDate }: InsuranceTimelineProps) {
       {
         date: markers.sixtyDaysBefore,
         label: "60 nap",
-        description: "Váltási időszak kezdete - emlékeztető",
+        description: "Váltási időszak kezdete - emlékeztető email",
         icon: <Clock className="w-4 h-4" />,
         isPast: today >= markers.sixtyDaysBefore,
         isCurrent: daysToAnniversary <= 60 && daysToAnniversary > 50,
@@ -62,15 +62,6 @@ export function InsuranceTimeline({ anniversaryDate }: InsuranceTimelineProps) {
         icon: <AlertTriangle className="w-4 h-4" />,
         isPast: today >= markers.thirtyDaysBefore,
         isCurrent: daysToAnniversary <= 30 && daysToAnniversary > 0,
-        color: "text-destructive",
-      },
-      {
-        date: markers.anniversary,
-        label: "Évforduló",
-        description: "Biztosítás évfordulója",
-        icon: <Calendar className="w-4 h-4" />,
-        isPast: today >= markers.anniversary,
-        isCurrent: daysToAnniversary === 0,
         color: "text-destructive",
       },
     ];

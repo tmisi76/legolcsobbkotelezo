@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { useInView } from "@/hooks/useInView";
 import { useCountUp } from "@/hooks/useCountUp";
 import { useAppStats } from "@/hooks/useAppStats";
-import { Users, Car, PiggyBank } from "lucide-react";
+import { Users, Car } from "lucide-react";
 import { StatCardSkeleton } from "@/components/ui/skeleton-card";
 
 interface StatItemProps {
@@ -65,25 +65,19 @@ const SocialProof = () => {
   const { ref, isInView } = useInView({ threshold: 0.3 });
   const { stats, loading } = useAppStats();
 
-  // Use stats from database or fallback defaults
+  // Use stats from database or fallback defaults (csak felhasználók és autók)
   const statsData = [
     { 
       value: stats?.total_users ?? 2847, 
-      suffix: "", 
+      suffix: "+", 
       label: "Regisztrált felhasználó", 
       icon: Users 
     },
     { 
       value: stats?.total_cars ?? 4123, 
-      suffix: "", 
+      suffix: "+", 
       label: "Figyelt autó", 
       icon: Car 
-    },
-    { 
-      value: Math.floor((stats?.total_estimated_savings ?? 47000000) / 1000000), 
-      suffix: "+ millió Ft", 
-      label: "Becsült megtakarítás", 
-      icon: PiggyBank 
     },
   ];
 
@@ -91,8 +85,8 @@ const SocialProof = () => {
     return (
       <section className="py-16 md:py-24 bg-background">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 max-w-4xl mx-auto">
-            {[1, 2, 3].map((i) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-2xl mx-auto">
+            {[1, 2].map((i) => (
               <StatCardSkeleton key={i} />
             ))}
           </div>
@@ -106,7 +100,7 @@ const SocialProof = () => {
       <div className="container mx-auto px-4">
         <motion.div
           ref={ref}
-          className="grid grid-cols-1 md:grid-cols-3 gap-12 max-w-4xl mx-auto"
+          className="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-2xl mx-auto"
           initial={{ opacity: 0 }}
           animate={isInView ? { opacity: 1 } : {}}
           transition={{ duration: 0.3 }}

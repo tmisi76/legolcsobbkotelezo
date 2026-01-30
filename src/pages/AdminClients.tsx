@@ -49,7 +49,7 @@ interface CarWithUser {
   profiles: {
     full_name: string;
     phone: string | null;
-    email?: string;
+    email?: string | null;
   } | null;
   user_email?: string;
 }
@@ -98,7 +98,8 @@ export default function AdminClients() {
           user_id,
           profiles!cars_user_id_fkey (
             full_name,
-            phone
+            phone,
+            email
           )
         `)
         .order("anniversary_date", { ascending: true });
@@ -109,12 +110,10 @@ export default function AdminClients() {
         return;
       }
 
-      // Fetch user emails separately (from auth.users via admin API is not possible, 
-      // so we'll try to get it from profiles or display N/A)
-      // For now, we'll use a simple approach - in a real app you'd have emails in profiles
+      // Profile email is now available directly from the profiles table
       const carsWithEmail = (carsData || []).map(car => ({
         ...car,
-        user_email: undefined, // Would need to be fetched from auth or stored in profiles
+        user_email: car.profiles?.email || undefined,
       }));
 
       setCars(carsWithEmail);

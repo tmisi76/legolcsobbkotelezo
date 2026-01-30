@@ -48,6 +48,7 @@ interface CarWithUser {
   profiles: {
     full_name: string;
     phone: string | null;
+    email?: string | null;
   } | null;
   user_email?: string;
 }
@@ -132,9 +133,6 @@ export function CarDetailsDialog({ car, open, onOpenChange, onNotesUpdate }: Car
   if (!car) return null;
 
   const daysUntil = getDaysUntilAnniversary(car.anniversary_date);
-  const estimatedSavings = car.current_annual_fee
-    ? Math.round(car.current_annual_fee * 0.18)
-    : null;
 
   const saveNotes = async () => {
     setIsSavingNotes(true);
@@ -229,16 +227,16 @@ export function CarDetailsDialog({ car, open, onOpenChange, onNotesUpdate }: Car
               <div className="md:col-span-2">
                 <span className="text-muted-foreground text-sm">Email</span>
                 <p className="font-medium flex items-center gap-1">
-                  {car.user_email ? (
-                    <>
-                      <Mail className="w-3 h-3" />
-                      <a href={`mailto:${car.user_email}`} className="hover:underline">
-                        {car.user_email}
-                      </a>
-                    </>
-                  ) : (
-                    "Nincs megadva"
-                  )}
+              {car.profiles?.email ? (
+                <>
+                  <Mail className="w-3 h-3" />
+                  <a href={`mailto:${car.profiles.email}`} className="hover:underline">
+                    {car.profiles.email}
+                  </a>
+                </>
+              ) : (
+                "Nincs megadva"
+              )}
                 </p>
               </div>
             </div>
@@ -286,7 +284,7 @@ export function CarDetailsDialog({ car, open, onOpenChange, onNotesUpdate }: Car
 
           <Separator />
 
-          {/* Biztosítás */}
+          {/* Biztosítás - becsült megtakarítás nélkül */}
           <section>
             <div className="flex items-center gap-2 mb-3">
               <Calendar className="w-4 h-4 text-primary" />
@@ -294,7 +292,7 @@ export function CarDetailsDialog({ car, open, onOpenChange, onNotesUpdate }: Car
                 Biztosítás
               </h3>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pl-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 pl-6">
               <div>
                 <span className="text-muted-foreground text-sm">Évforduló</span>
                 <p className="font-medium">{formatHungarianDate(car.anniversary_date)}</p>
@@ -311,12 +309,6 @@ export function CarDetailsDialog({ car, open, onOpenChange, onNotesUpdate }: Car
                   {car.current_annual_fee
                     ? `${formatHungarianNumber(car.current_annual_fee)} Ft/év`
                     : "Nincs megadva"}
-                </p>
-              </div>
-              <div>
-                <span className="text-muted-foreground text-sm">Becsült megtakarítás</span>
-                <p className="font-medium text-green-600">
-                  {estimatedSavings ? `~${formatHungarianNumber(estimatedSavings)} Ft` : "–"}
                 </p>
               </div>
             </div>
