@@ -1,83 +1,79 @@
 
+## Probléma oka (már azonosítható a logokból)
+A jelszó-visszaállító “küldés” valójában lefut, a recovery link is legenerálódik, viszont az email elküldése **Resend oldalon elhasal**:
 
-# Terv: Jelszó-visszaállító email küldés javítása
+- Hiba: `403 The legolcsobbkotelezo.hu domain is not verified`
+- Ok: a `send-password-reset` funkció jelenleg ezt használja feladóként:
+  - `LegolcsóbbKötelező <noreply@legolcsobbkotelezo.hu>`
+  - ezt a domaint a Resend fiókban még nem verifikáltátok, ezért Resend blokkolja a küldést.
 
-## Probléma azonosítva
-
-A jelszó-visszaállító email nem érkezik meg, mert a Supabase beépített SMTP rendszere korlátozott Lovable Cloud környezetben. A reminder emailek már Resend-et használnak, de a jelszó-visszaállításhoz még nincs ilyen megoldás.
-
----
-
-## Megoldás: Egyedi Edge Function a jelszó-visszaállításhoz
-
-Létrehozunk egy új Edge Function-t (`send-password-reset`), ami a Resend API-t használja a jelszó-visszaállító email küldésére.
-
-### Működés
-
-1. A felhasználó megadja az email címét
-2. A frontend meghívja az új Edge Function-t
-3. Az Edge Function:
-   - Létrehoz egy Supabase recovery tokent (`generateLink`)
-   - Elküldi a Resend-en keresztül a formázott emailt
-   - A link a published URL-re mutat (`legolcsobbkotelezo.lovable.app`)
+Közben a reminder emailek azért mennek ki, mert ott a feladó:
+- `LegolcsóbbKötelező <onboarding@resend.dev>`
+ami Resend “teszt/általános” feladóként használható domain-verifikáció nélkül.
 
 ---
 
-## Technikai megvalósítás
+## Cél
+Ha a user jelszóemlékeztetőt kér, **ténylegesen menjen ki az email**, és a link a publikus reset oldalra vigyen.
 
-### 1. Új Edge Function: `send-password-reset`
+---
 
+## Megoldás (gyors, biztos fix)
+### 1) `send-password-reset` funkcióban a feladó javítása
 **Fájl:** `supabase/functions/send-password-reset/index.ts`
 
-- Fogadja az email címet a request body-ban
-- Ellenőrzi, hogy létezik-e ilyen felhasználó
-- Generál egy recovery linket a Supabase Admin API-val
-- Elküldi az emailt Resend-en keresztül
-- Szép, magyar nyelvű HTML email template
+- A `from` mezőt átállítjuk ugyanarra a feladóra, amit a reminder funkció is használ:
+  - `LegolcsóbbKötelező <onboarding@resend.dev>`
 
-### 2. Frontend módosítás: `ForgotPassword.tsx`
-
-- A `supabase.auth.resetPasswordForEmail` helyett az új Edge Function-t hívja
-- Kezeli a válaszokat és hibákat
-
-### 3. Config frissítés: `supabase/config.toml`
-
-- JWT verifikáció kikapcsolása az új function-hoz (publikus endpoint)
+Ezzel:
+- azonnal megszűnik a 403-as blokkolás,
+- a jelszó-visszaállító email ki fog menni domain verifikáció nélkül is.
 
 ---
 
-## Módosítandó fájlok
+## Opcionális, “profi” megoldás (hogy később saját domainről menjen)
+### 2) Feladó cím konfigurálhatóvá tétele
+**Fájl:** `supabase/functions/send-password-reset/index.ts`
 
-| Fájl | Változtatás |
-|------|-------------|
-| `supabase/functions/send-password-reset/index.ts` | Új Edge Function létrehozása |
-| `supabase/config.toml` | Új function regisztrálása |
-| `src/pages/ForgotPassword.tsx` | Edge Function hívás a Supabase helyett |
-| `src/contexts/AuthContext.tsx` | `resetPassword` függvény frissítése (opcionális) |
+- Bevezetünk egy opcionális környezeti változót (secretet), pl. `RESEND_FROM`
+- Logika:
+  - ha `RESEND_FROM` létezik -> azt használjuk
+  - különben fallback -> `onboarding@resend.dev`
 
----
-
-## Biztonsági szempontok
-
-- Rate limiting: ne lehessen spammelni az emaileket
-- Az email cím létezésének nem fedése fel (mindig "Ha létezik ilyen fiók..." üzenet)
-- HTTPS only redirect URL
-- A recovery token lejárati ideje (1 óra)
+Így:
+- most azonnal működik (fallback)
+- később, ha verifikáljátok a domaint Resend-ben, csak beállítjátok a `RESEND_FROM`-ot pl. `noreply@legolcsobbkotelezo.hu`-ra, és kész.
 
 ---
 
-## Email sablon
+## Opcionális finomítások (nem kötelezőek, de javasoltak)
+### 3) E-mail sablon footer link egységesítése
+A password reset emailben jelenleg a footerben `.lovable.app` link van.
+Javaslat: átállítani a publikus domainre (pl. `legolcsobbkotelezo.hu`), hogy egységes legyen a brand.
 
-Magyar nyelvű, LegolcsóbbKötelező arculatához illő design:
-- Logo és fejléc
-- Üdvözlés
-- Visszaállító link gomb
-- Lejárati információ
-- Lábléc
+### 4) “Operational” log javítás
+Most a function biztonsági okból mindig success üzenetet ad vissza (email enumeráció ellen).
+Ezt megtartjuk, viszont:
+- logolunk egyértelműen Resend küldési hibát (már most is van),
+- így ha valami megint elromlik, könnyű visszanézni.
 
 ---
 
-## Eredmény
+## Teszt terv (amit a javítás után végigcsinálunk)
+1) Kérj jelszóemlékeztetőt a `horvath.jozsef@h-kontakt.hu` címre
+2) Ellenőrizzük, hogy a backend logban már **nincs 403**
+3) Megnézed a bejövő levelek közt + spam/promóciók fülön
+4) Rákattintasz a linkre, és a `https://legolcsobbkotelezo.lovable.app/reset-password` oldalon be tudod állítani az új jelszót
 
-A jelszó-visszaállító emailek megbízhatóan kiküldésre kerülnek a Resend-en keresztül, ugyanúgy mint a reminder emailek.
+---
 
+## Érintett fájlok
+- Kötelező:
+  - `supabase/functions/send-password-reset/index.ts` (from cím javítása)
+- Opcionális:
+  - ugyanitt: `RESEND_FROM` támogatás + footer link finomítás
+
+---
+
+## Várható eredmény
+A jelszó-visszaállító emailek azonnal ki fognak menni Resend-del, és a user tényleg meg fogja kapni a levelet (nem csak “Email elküldve” UI üzenetet fog látni).
