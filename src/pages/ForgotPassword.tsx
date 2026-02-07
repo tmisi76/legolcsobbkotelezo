@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Link } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -24,7 +24,6 @@ const forgotPasswordSchema = z.object({
 type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
 
 const ForgotPasswordPage = () => {
-  const { resetPassword } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -39,17 +38,27 @@ const ForgotPasswordPage = () => {
   const onSubmit = async (data: ForgotPasswordFormData) => {
     setIsLoading(true);
     try {
-      const { error } = await resetPassword(data.email);
-      
-      if (error) {
+      const response = await supabase.functions.invoke("send-password-reset", {
+        body: { email: data.email },
+      });
+
+      if (response.error) {
+        console.error("[ForgotPassword] Edge function error:", response.error);
         toast({
           variant: "destructive",
           title: "Hiba történt",
-          description: error.message,
+          description: "Nem sikerült elküldeni az emailt. Próbáld újra később.",
         });
       } else {
         setIsSubmitted(true);
       }
+    } catch (error) {
+      console.error("[ForgotPassword] Error:", error);
+      toast({
+        variant: "destructive",
+        title: "Hiba történt",
+        description: "Váratlan hiba történt. Próbáld újra később.",
+      });
     } finally {
       setIsLoading(false);
     }
