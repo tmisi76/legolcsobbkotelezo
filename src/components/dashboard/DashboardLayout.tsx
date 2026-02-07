@@ -235,7 +235,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
               Üdv, <span className="font-medium text-foreground">{profile?.full_name || "Felhasználó"}</span>! 👋
             </span>
             <Button asChild>
-              <Link to="/dashboard/cars">
+              <Link to="/dashboard/cars?add=true">
                 <Plus className="w-4 h-4" />
                 Új autó
               </Link>

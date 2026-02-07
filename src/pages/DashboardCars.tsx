@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { EmptyState } from "@/components/dashboard/EmptyState";
 import { CarCard } from "@/components/dashboard/CarCard";
@@ -24,6 +25,7 @@ type FilterOption = "all" | "urgent" | "upcoming" | "safe";
 
 export default function DashboardCars() {
   const { cars, isLoading, deleteCar, isDeleting } = useCars();
+  const [searchParams, setSearchParams] = useSearchParams();
   
   const [sortBy, setSortBy] = useState<SortOption>("expiry");
   const [filterBy, setFilterBy] = useState<FilterOption>("all");
@@ -33,6 +35,16 @@ export default function DashboardCars() {
   
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [deletingCar, setDeletingCar] = useState<Car | null>(null);
+
+  // Handle URL parameter to auto-open the add modal
+  useEffect(() => {
+    if (searchParams.get("add") === "true") {
+      setEditingCar(null);
+      setIsFormOpen(true);
+      // Remove the parameter from URL
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   // Process cars with days until anniversary
   const processedCars = useMemo(() => {

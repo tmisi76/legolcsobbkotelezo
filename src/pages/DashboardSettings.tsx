@@ -43,7 +43,8 @@ import {
   ChevronDown,
   Check,
   Shield,
-  AlertTriangle
+  AlertTriangle,
+  CheckCircle
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -90,6 +91,7 @@ export default function DashboardSettings() {
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [isPasswordOpen, setIsPasswordOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [showDeleteSuccess, setShowDeleteSuccess] = useState(false);
   
   // Notification settings state
   const [emailReminders, setEmailReminders] = useState(profile?.email_reminders_enabled ?? true);
@@ -250,14 +252,17 @@ export default function DashboardSettings() {
         return;
       }
 
-      // Success - sign out and redirect
-      toast.success("✅ A fiókod sikeresen törölve lett.");
+      // Success - show prominent success message
+      setShowDeleteSuccess(true);
       await logout();
-      window.location.href = "/";
+      
+      // Redirect after a delay
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 3000);
     } catch (error) {
       console.error("Delete account error:", error);
       toast.error("Hiba történt a fiók törlése során.");
-    } finally {
       setIsDeletingAccount(false);
       setIsDeleteDialogOpen(false);
     }
@@ -276,6 +281,28 @@ export default function DashboardSettings() {
       return [...prev, day];
     });
   };
+
+  // Show success overlay after account deletion
+  if (showDeleteSuccess) {
+    return (
+      <div className="fixed inset-0 bg-background z-50 flex items-center justify-center p-6">
+        <div className="text-center max-w-md">
+          <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
+            <CheckCircle className="w-10 h-10 text-primary" />
+          </div>
+          <h2 className="text-2xl font-bold text-foreground mb-4">
+            A fiókod sikeresen törölve lett
+          </h2>
+          <p className="text-muted-foreground mb-6">
+            Minden adatodat véglegesen töröltük a rendszerből. Köszönjük, hogy velünk tartottál!
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Átirányítunk a főoldalra...
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <DashboardLayout title="Beállítások">
