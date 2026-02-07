@@ -10,13 +10,15 @@ const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-// Use verified domain for sending
+// Use verified domain
 const FROM_EMAIL = Deno.env.get("RESEND_FROM") || "noreply@digitalisbirodalom.hu";
 
-const REDIRECT_URL = "https://legolcsobbkotelezo.lovable.app/reset-password";
+const REDIRECT_URL = "https://legolcsobbkotelezo.lovable.app/";
 
-interface PasswordResetRequest {
+interface EmailConfirmationRequest {
   email: string;
+  password: string;
+  fullName: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -27,20 +29,20 @@ const handler = async (req: Request): Promise<Response> => {
 
   try {
     if (!RESEND_API_KEY) {
-      console.error("[send-password-reset] RESEND_API_KEY is not configured");
+      console.error("[send-email-confirmation] RESEND_API_KEY is not configured");
       throw new Error("Email service not configured");
     }
 
-    const { email }: PasswordResetRequest = await req.json();
+    const { email, password, fullName }: EmailConfirmationRequest = await req.json();
 
-    if (!email) {
+    if (!email || !password) {
       return new Response(
-        JSON.stringify({ error: "Email cím szükséges" }),
+        JSON.stringify({ error: "Email és jelszó szükséges" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log(`[send-password-reset] Processing request for email`);
+    console.log(`[send-email-confirmation] Processing confirmation for email`);
 
     // Create Supabase admin client
     const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
@@ -50,32 +52,32 @@ const handler = async (req: Request): Promise<Response> => {
       },
     });
 
-    // Generate recovery link using admin API
+    // Generate signup confirmation link using admin API
     const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
-      type: "recovery",
+      type: "signup",
       email: email,
+      password: password,
       options: {
         redirectTo: REDIRECT_URL,
+        data: {
+          full_name: fullName,
+        },
       },
     });
 
     if (linkError) {
-      console.log(`[send-password-reset] Error generating link: ${linkError.message}`);
-      // Don't reveal whether email exists or not for security
-      return new Response(
-        JSON.stringify({ success: true, message: "Ha létezik ilyen fiók, elküldtük a visszaállító linket." }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      console.error(`[send-email-confirmation] Error generating link: ${linkError.message}`);
+      throw new Error(linkError.message);
     }
 
-    const recoveryLink = linkData.properties?.action_link;
+    const confirmationLink = linkData.properties?.action_link;
     
-    if (!recoveryLink) {
-      console.error("[send-password-reset] No recovery link generated");
-      throw new Error("Failed to generate recovery link");
+    if (!confirmationLink) {
+      console.error("[send-email-confirmation] No confirmation link generated");
+      throw new Error("Failed to generate confirmation link");
     }
 
-    console.log("[send-password-reset] Recovery link generated successfully");
+    console.log("[send-email-confirmation] Confirmation link generated successfully");
 
     // Send email via Resend
     const emailHtml = `
@@ -84,7 +86,7 @@ const handler = async (req: Request): Promise<Response> => {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Jelszó visszaállítás</title>
+  <title>Email megerősítés</title>
 </head>
 <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc;">
   <table role="presentation" style="width: 100%; border-collapse: collapse;">
@@ -106,32 +108,49 @@ const handler = async (req: Request): Promise<Response> => {
           <tr>
             <td style="padding: 32px 40px;">
               <h1 style="margin: 0 0 16px; font-size: 22px; font-weight: 600; color: #1e293b; text-align: center;">
-                Jelszó visszaállítás
+                Üdvözlünk${fullName ? `, ${fullName}` : ""}! 🎉
               </h1>
               
               <p style="margin: 0 0 24px; font-size: 15px; line-height: 1.6; color: #475569; text-align: center;">
-                Kaptunk egy kérést a fiókod jelszavának visszaállítására. Ha te kérted, kattints az alábbi gombra:
+                Köszönjük, hogy regisztráltál a LegolcsóbbKötelező szolgáltatásra! Kérjük, erősítsd meg az email címedet az alábbi gombra kattintva:
               </p>
               
               <!-- CTA Button -->
               <table role="presentation" style="width: 100%; border-collapse: collapse;">
                 <tr>
                   <td align="center" style="padding: 8px 0 24px;">
-                    <a href="${recoveryLink}" 
+                    <a href="${confirmationLink}" 
                        style="display: inline-block; padding: 14px 32px; background: linear-gradient(135deg, #16a34a 0%, #22c55e 100%); color: #ffffff; text-decoration: none; font-size: 16px; font-weight: 600; border-radius: 10px; box-shadow: 0 4px 14px 0 rgba(22, 163, 74, 0.39);">
-                      Jelszó visszaállítása
+                      Email cím megerősítése
                     </a>
                   </td>
                 </tr>
               </table>
               
               <p style="margin: 0 0 16px; font-size: 13px; line-height: 1.6; color: #94a3b8; text-align: center;">
-                Ez a link <strong>1 órán belül</strong> lejár biztonsági okokból.
+                Ez a link <strong>24 órán belül</strong> lejár biztonsági okokból.
               </p>
               
               <p style="margin: 0; font-size: 13px; line-height: 1.6; color: #94a3b8; text-align: center;">
-                Ha nem te kérted a jelszó visszaállítását, nyugodtan figyelmen kívül hagyhatod ezt az emailt.
+                Ha nem te regisztráltál, nyugodtan figyelmen kívül hagyhatod ezt az emailt.
               </p>
+            </td>
+          </tr>
+          
+          <!-- Features -->
+          <tr>
+            <td style="padding: 0 40px 32px;">
+              <div style="background-color: #f0fdf4; border-radius: 12px; padding: 20px;">
+                <p style="margin: 0 0 12px; font-size: 14px; font-weight: 600; color: #1e293b;">
+                  Amit a regisztráció után élvezhetsz:
+                </p>
+                <ul style="margin: 0; padding-left: 20px; font-size: 13px; line-height: 1.8; color: #475569;">
+                  <li>🚗 Autóid nyilvántartása egy helyen</li>
+                  <li>📧 Automatikus emlékeztetők a váltási időszakról</li>
+                  <li>💰 Segítünk megtalálni a legjobb kötelező biztosítást</li>
+                  <li>🌟 Személyre szabott ajánlatok (opcionális)</li>
+                </ul>
+              </div>
             </td>
           </tr>
           
@@ -163,7 +182,7 @@ const handler = async (req: Request): Promise<Response> => {
       body: JSON.stringify({
         from: `LegolcsóbbKötelező <${FROM_EMAIL}>`,
         to: [email],
-        subject: "Jelszó visszaállítás - LegolcsóbbKötelező",
+        subject: "Erősítsd meg az email címed - LegolcsóbbKötelező",
         html: emailHtml,
       }),
     });
@@ -171,23 +190,22 @@ const handler = async (req: Request): Promise<Response> => {
     const resendData = await resendResponse.json();
 
     if (!resendResponse.ok) {
-      console.error("[send-password-reset] Resend error:", resendData);
-      throw new Error("Failed to send email");
+      console.error("[send-email-confirmation] Resend error:", resendData);
+      throw new Error(`Resend API error: ${resendData.message || "Unknown error"}`);
     }
 
-    console.log("[send-password-reset] Email sent successfully:", resendData.id);
+    console.log("[send-email-confirmation] Email sent successfully:", resendData.id);
 
     return new Response(
-      JSON.stringify({ success: true, message: "Ha létezik ilyen fiók, elküldtük a visszaállító linket." }),
+      JSON.stringify({ success: true, message: "Megerősítő email elküldve." }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: any) {
-    console.error("[send-password-reset] Error:", error.message);
+    console.error("[send-email-confirmation] Error:", error.message);
     
-    // Always return success message to prevent email enumeration
     return new Response(
-      JSON.stringify({ success: true, message: "Ha létezik ilyen fiók, elküldtük a visszaállító linket." }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ error: error.message || "Hiba történt az email küldése során." }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 };

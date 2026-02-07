@@ -32,7 +32,6 @@ const registerSchema = z.object({
 type RegisterFormData = z.infer<typeof registerSchema>;
 
 const RegisterPage = () => {
-  const { register } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
@@ -55,13 +54,29 @@ const RegisterPage = () => {
   const onSubmit = async (data: RegisterFormData) => {
     setIsLoading(true);
     try {
-      const { error } = await register(data.email, data.password, data.fullName);
-      
-      if (error) {
+      // Call our custom Edge Function to handle registration with email confirmation
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-email-confirmation`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: data.email,
+            password: data.password,
+            fullName: data.fullName,
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
         toast({
           variant: "destructive",
           title: "Regisztráció sikertelen",
-          description: error.message,
+          description: result.error || "Hiba történt a regisztráció során.",
         });
       } else {
         setRegistrationSuccess(true);
@@ -71,6 +86,12 @@ const RegisterPage = () => {
           duration: 10000,
         });
       }
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Regisztráció sikertelen",
+        description: error.message || "Hiba történt a regisztráció során.",
+      });
     } finally {
       setIsLoading(false);
     }
