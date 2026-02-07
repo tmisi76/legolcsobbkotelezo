@@ -10,6 +10,9 @@ const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
+// Use RESEND_FROM if set (for verified domain), otherwise fallback to Resend's test domain
+const FROM_EMAIL = Deno.env.get("RESEND_FROM") || "onboarding@resend.dev";
+
 const REDIRECT_URL = "https://legolcsobbkotelezo.lovable.app/reset-password";
 
 interface PasswordResetRequest {
@@ -158,7 +161,7 @@ const handler = async (req: Request): Promise<Response> => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "LegolcsóbbKötelező <noreply@legolcsobbkotelezo.hu>",
+        from: `LegolcsóbbKötelező <${FROM_EMAIL}>`,
         to: [email],
         subject: "Jelszó visszaállítás - LegolcsóbbKötelező",
         html: emailHtml,
