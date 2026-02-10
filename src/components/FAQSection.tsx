@@ -6,63 +6,43 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { useInView } from "@/hooks/useInView";
+import { usePageBySlug } from "@/hooks/usePages";
 
-const faqs = [
-  {
-    question: "Mennyibe kerül a szolgáltatás?",
-    answer:
-      "Teljesen ingyenes! Nem kérünk bankkártya adatokat és nincsenek rejtett díjak. A szolgáltatás fenntartását a biztosítókkal való együttműködés teszi lehetővé.",
-  },
-  {
-    question: "Hogyan spórolhatok a kötelezőn?",
-    answer:
-      "Minden évben a biztosítási évforduló előtt 60 és 30 nap között van lehetőség biztosítót váltani. Ilyenkor az új biztosítók kedvező ajánlatokkal csábítják az ügyfeleket. Mi 50 nappal az évforduló előtt emlékeztetünk, hogy legyen időd összehasonlítani az ajánlatokat és kiválasztani a legjobbat.",
-  },
-  {
-    question: "Biztonságban vannak az adataim?",
-    answer:
-      "Igen, GDPR kompatibilis adatkezelést alkalmazunk. Az adataidat titkosítva tároljuk és harmadik félnek csak a te kifejezett beleegyezéseddel adjuk át. Bármikor kérheted adataid törlését.",
-  },
-  {
-    question: "Mi történik ha megadom a telefonszámom?",
-    answer:
-      "Személyesen felhívunk az évforduló előtti lehetséges váltási időszakban a legjobb, személyre szabott biztosítási ajánlatokkal. Nem spam hívásokról van szó - csak egyszer keresünk évente. A telefonszám megadása teljesen opcionális.",
-  },
-  {
-    question: "Hány autót adhatok hozzá a fiókomhoz?",
-    answer:
-      "Nincs korlátozás! Korlátlan számú autót adhatsz hozzá, és mindegyikről külön emlékeztetőt kapsz a megfelelő időpontban.",
-  },
+const fallbackFaqs = [
+  { question: "Mennyibe kerül a szolgáltatás?", answer: "Teljesen ingyenes!" },
+  { question: "Biztonságban vannak az adataim?", answer: "Igen, GDPR kompatibilis adatkezelést alkalmazunk." },
 ];
 
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: {
-      staggerChildren: 0.1,
-      delayChildren: 0.2,
-    },
+    transition: { staggerChildren: 0.1, delayChildren: 0.2 },
   },
 };
 
 const itemVariants = {
   hidden: { opacity: 0, y: 20 },
-  visible: { 
-    opacity: 1, 
-    y: 0,
-    transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] }
-  },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] } },
 };
 
 const FAQSection = () => {
   const { ref, isInView } = useInView({ threshold: 0.1 });
+  const { data: page } = usePageBySlug("gyik");
+
+  let faqs = fallbackFaqs;
+  if (page?.content) {
+    try {
+      faqs = JSON.parse(page.content);
+    } catch {
+      // fallback
+    }
+  }
 
   return (
     <section className="py-16 md:py-24 bg-muted/30">
       <div className="container mx-auto px-4">
-        {/* Section Title */}
-        <motion.div 
+        <motion.div
           className="text-center mb-12"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -77,7 +57,6 @@ const FAQSection = () => {
           </p>
         </motion.div>
 
-        {/* FAQ Accordion */}
         <motion.div
           ref={ref}
           className="max-w-3xl mx-auto"
@@ -86,7 +65,7 @@ const FAQSection = () => {
           animate={isInView ? "visible" : "hidden"}
         >
           <Accordion type="single" collapsible className="space-y-4">
-            {faqs.map((faq, index) => (
+            {faqs.map((faq: { question: string; answer: string }, index: number) => (
               <motion.div key={index} variants={itemVariants}>
                 <AccordionItem
                   value={`item-${index}`}

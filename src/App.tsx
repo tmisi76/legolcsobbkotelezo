@@ -21,8 +21,10 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AdminClients from "./pages/AdminClients";
 import AdminUsers from "./pages/AdminUsers";
 import AdminEmailPreview from "./pages/AdminEmailPreview";
+import AdminPages from "./pages/AdminPages";
 import Adatvedelem from "./pages/Adatvedelem";
 import ASZF from "./pages/ASZF";
+import DynamicPage from "./pages/DynamicPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -143,9 +145,21 @@ const App = () => (
                 </AdminProtectedRoute>
               }
             />
+            <Route
+              path="/admin/pages"
+              element={
+                <AdminProtectedRoute>
+                  <AdminPages />
+                </AdminProtectedRoute>
+              }
+            />
             {/* Legal pages */}
             <Route path="/adatvedelem" element={<Adatvedelem />} />
             <Route path="/aszf" element={<ASZF />} />
+            <Route path="/kapcsolat" element={<DynamicPage />} />
+            <Route path="/impresszum" element={<DynamicPage />} />
+            <Route path="/munkatarsaink" element={<DynamicPage />} />
+            <Route path="/oldal/:slug" element={<DynamicPage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
