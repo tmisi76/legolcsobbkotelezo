@@ -1,132 +1,68 @@
 
 
-# Terv: Admin oldali tartalomkezelő rendszer (CMS)
+# Terv: Rich Text szerkesztő az admin oldalszerkesztőbe
 
-## Cel
+## Probléma
+Jelenleg a tartalomszerkesztő egy sima HTML textarea, ami nem felhasználóbarát. Az admin nyers HTML kódot lát a szerkesztőben.
 
-Egy egyszerű tartalomkezelő rendszer (CMS) kialakítása, amellyel az admin felhasználók szerkeszthetik a meglévő oldalakat (GYIK, ÁSZF, Adatvédelem), új oldalakat hozhatnak létre (Kapcsolat, Impresszum, Munkatársaink), és dinamikusan kezelhetik a menüpontokat.
-
----
-
-## 1. Adatbázis (2 új tábla)
-
-### `pages` tábla
-Az oldalak tartalmát tárolja.
-
-| Oszlop | Típus | Leírás |
-|--------|-------|--------|
-| id | uuid | Elsődleges kulcs |
-| slug | text (unique) | URL slug, pl. "aszf", "kapcsolat" |
-| title | text | Oldal címe, pl. "ÁSZF" |
-| content | text | Oldal tartalma (HTML formátumban) |
-| is_published | boolean | Publikálva van-e |
-| created_at | timestamptz | Létrehozás ideje |
-| updated_at | timestamptz | Utolsó módosítás |
-
-### `menu_items` tábla
-A dinamikus menüpontokat tárolja (footer, navbar stb.).
-
-| Oszlop | Típus | Leírás |
-|--------|-------|--------|
-| id | uuid | Elsődleges kulcs |
-| label | text | Megjelenő felirat, pl. "Kapcsolat" |
-| slug | text | Hivatkozott oldal slug-ja |
-| position | text | Hol jelenjen meg: "footer", "navbar" |
-| sort_order | integer | Sorrend |
-| is_visible | boolean | Látható-e |
-| created_at | timestamptz | Létrehozás ideje |
-
-### RLS szabályok
-- **Olvasás:** mindenki (publikus oldalak)
-- **Írás/Módosítás/Törlés:** csak admin (`has_role(auth.uid(), 'admin')`)
+## Megoldás
+A **TipTap** rich text editort integráljuk a PageEditorDialog-ba. A TipTap egy headless, React-kompatibilis szerkesztő, ami HTML-t generál kimenetként -- tehát a jelenlegi adatbázis struktúra (HTML content) változatlan marad.
 
 ---
 
-## 2. Admin felület: Tartalomkezelés
+## Lépések
 
-Új admin oldal: `/admin/pages`
+### 1. TipTap csomagok telepítése
+- `@tiptap/react` - React integráció
+- `@tiptap/starter-kit` - alap funkciók (fejlécek, listák, félkövér, dőlt, stb.)
+- `@tiptap/extension-underline` - aláhúzás
 
-### Funkciók:
-- **Oldalak listája:** Táblázatban megjelenik az összes oldal (cím, slug, státusz, utolsó módosítás)
-- **Oldal szerkesztése:** Dialógus ablakban szerkeszthető a cím és a tartalom (egyszerű szövegszerkesztő)
-- **Új oldal létrehozása:** Ugyanez a dialógus, üres mezőkkel
-- **Oldal törlése:** Megerősítő dialógus után
-- **Menüpont-kezelés:** Melyik oldalak jelenjenek meg a footerben, milyen sorrendben
+### 2. RichTextEditor komponens létrehozása
+**Fájl:** `src/components/admin/RichTextEditor.tsx`
 
-### Szerkesztő
-Egyszerű textarea-alapú HTML szerkesztő (a jelenlegi ÁSZF/Adatvédelem stílusával konzisztens). A tartalom szekciókra bontva (h2 címsor + bekezdések) jelenik meg.
+Tartalmaz:
+- **Eszköztár** (toolbar) gombokkal: Fejléc (H2, H3), Félkövér, Dőlt, Aláhúzás, Felsorolás, Számozott lista
+- **Szerkesztő terület** - WYSIWYG nézet, ahol a szöveg úgy jelenik meg, ahogy az oldalon is fog
+- Props: `content` (bemeneti HTML), `onChange` (HTML kimenetet ad vissza)
 
----
+### 3. PageEditorDialog módosítása
+**Fájl:** `src/components/admin/PageEditorDialog.tsx`
 
-## 3. Alapértelmezett oldalak betöltése
-
-Az első migráció létrehozza az alap oldalakat a jelenlegi hardcoded tartalommal:
-
-- **GYIK** (slug: "gyik") - a jelenlegi FAQ kérdés-válaszok JSON formátumban
-- **ÁSZF** (slug: "aszf") - a jelenlegi ASZF.tsx tartalma
-- **Adatvédelmi tájékoztató** (slug: "adatvedelem") - a jelenlegi Adatvedelem.tsx tartalma
-- **Kapcsolat** (slug: "kapcsolat") - új, H-Kontakt Group elérhetőségei
-- **Impresszum** (slug: "impresszum") - új, cégadatok
-- **Munkatársaink** (slug: "munkatarsaink") - új, üres sablon
+- A `<Textarea>` komponenst lecseréljük a `<RichTextEditor>`-ra
+- A "Tartalom (HTML)" felirat helyett "Tartalom" lesz
+- Minden más (cím, slug, publikálás, mentés) változatlan marad
 
 ---
 
-## 4. Frontend oldalak dinamizálása
+## Technikai részletek
 
-### Dinamikus oldal komponens
-Új komponens: `DynamicPage.tsx`
-- A slug alapján betölti az adatbázisból az oldal tartalmát
-- Navbar + Footer keretben jeleníti meg
-- 404-et mutat, ha nem létezik vagy nincs publikálva
+### Eszköztár gombjai
+| Gomb | Funkció | TipTap parancs |
+|------|---------|---------------|
+| **H2** | Alcím | toggleHeading({ level: 2 }) |
+| **H3** | Kisebb cím | toggleHeading({ level: 3 }) |
+| **B** | Félkövér | toggleBold() |
+| *I* | Dőlt | toggleItalic() |
+| U | Aláhúzás | toggleUnderline() |
+| Lista | Felsorolás | toggleBulletList() |
+| 1. | Számozott lista | toggleOrderedList() |
 
-### Módosítandó komponensek:
+### Stílus
+- Az eszköztár gombjai a meglévő shadcn Toggle komponenst használják
+- A szerkesztő terület a `prose` Tailwind osztályokkal lesz formázva (a `@tailwindcss/typography` plugin mar telepítve van)
+- Keretezés, háttér konzisztens a meglévő input/textarea stílussal
+
+### Kompatibilitás
+- A TipTap HTML-t ad kimenetként, ami pont az, amit az adatbázisban tárolunk
+- A meglévő tartalom (ami eddig nyers HTML-ként lett megírva) automatikusan betöltődik a szerkesztőbe formázottan
+- Nem kell adatbázis migrációt csinálni
+
+---
+
+## Érintett fájlok
+
 | Fájl | Változtatás |
 |------|-------------|
-| `src/pages/ASZF.tsx` | Dinamikus tartalomra cserélés (adatbázisból) |
-| `src/pages/Adatvedelem.tsx` | Dinamikus tartalomra cserélés |
-| `src/components/FAQSection.tsx` | GYIK adatok adatbázisból |
-| `src/components/Footer.tsx` | Menüpontok adatbázisból |
-| `src/App.tsx` | Új route-ok: `/kapcsolat`, `/impresszum`, `/munkatarsaink`, `/oldal/:slug` (catch-all dinamikus) |
-
----
-
-## 5. Admin menü bővítése
-
-A `DashboardLayout.tsx` admin menüjébe új menüpont:
-- **Tartalom** (ikon: FileEdit) --> `/admin/pages`
-
----
-
-## 6. Új fájlok
-
-| Fájl | Leírás |
-|------|--------|
-| `src/pages/AdminPages.tsx` | Admin tartalomkezelő oldal |
-| `src/components/admin/PageEditorDialog.tsx` | Oldal szerkesztő dialógus |
-| `src/components/admin/MenuItemsManager.tsx` | Menüpont-kezelő komponens |
-| `src/pages/DynamicPage.tsx` | Dinamikus oldal megjelenítő |
-| `src/hooks/usePages.ts` | Oldalak lekérdezése hook |
-| `src/hooks/useMenuItems.ts` | Menüpontok lekérdezése hook |
-
----
-
-## 7. Prioritás és sorrend
-
-1. Adatbázis migrációk (pages, menu_items táblák + RLS + seed data)
-2. Hook-ok (usePages, useMenuItems)
-3. Admin oldal (AdminPages + PageEditorDialog + MenuItemsManager)
-4. DynamicPage komponens
-5. Meglévő oldalak átalakítása (ÁSZF, Adatvédelem, GYIK)
-6. Footer dinamizálása
-7. Routing frissítése (App.tsx)
-8. Admin menü bővítése (DashboardLayout)
-
----
-
-## Technikai megjegyzések
-
-- A GYIK oldal speciális: kérdés-válasz párok JSON-ként tárolódnak a `content` mezőben, a `FAQSection` komponens ezt parse-olja
-- A szerkesztő egyszerű textarea lesz (nem rich text editor), mert a tartalom HTML formátumú, de a struktúra egységes (szekciók, bekezdések, listák)
-- A menüpont-kezelő drag-and-drop nélkül működik, sorrendet számmal lehet beállítani
-- Az admin a "Publikálás" kapcsolóval tudja szabályozni, hogy egy oldal látható-e a nyilvánosság számára
-
+| `package.json` | 3 új csomag: @tiptap/react, @tiptap/starter-kit, @tiptap/extension-underline |
+| `src/components/admin/RichTextEditor.tsx` | Új: rich text szerkesztő komponens |
+| `src/components/admin/PageEditorDialog.tsx` | Textarea csere RichTextEditor-ra |
