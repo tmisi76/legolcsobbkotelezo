@@ -1,79 +1,132 @@
 
-## Probléma oka (már azonosítható a logokból)
-A jelszó-visszaállító “küldés” valójában lefut, a recovery link is legenerálódik, viszont az email elküldése **Resend oldalon elhasal**:
 
-- Hiba: `403 The legolcsobbkotelezo.hu domain is not verified`
-- Ok: a `send-password-reset` funkció jelenleg ezt használja feladóként:
-  - `LegolcsóbbKötelező <noreply@legolcsobbkotelezo.hu>`
-  - ezt a domaint a Resend fiókban még nem verifikáltátok, ezért Resend blokkolja a küldést.
+# Terv: Admin oldali tartalomkezelő rendszer (CMS)
 
-Közben a reminder emailek azért mennek ki, mert ott a feladó:
-- `LegolcsóbbKötelező <onboarding@resend.dev>`
-ami Resend “teszt/általános” feladóként használható domain-verifikáció nélkül.
+## Cel
+
+Egy egyszerű tartalomkezelő rendszer (CMS) kialakítása, amellyel az admin felhasználók szerkeszthetik a meglévő oldalakat (GYIK, ÁSZF, Adatvédelem), új oldalakat hozhatnak létre (Kapcsolat, Impresszum, Munkatársaink), és dinamikusan kezelhetik a menüpontokat.
 
 ---
 
-## Cél
-Ha a user jelszóemlékeztetőt kér, **ténylegesen menjen ki az email**, és a link a publikus reset oldalra vigyen.
+## 1. Adatbázis (2 új tábla)
+
+### `pages` tábla
+Az oldalak tartalmát tárolja.
+
+| Oszlop | Típus | Leírás |
+|--------|-------|--------|
+| id | uuid | Elsődleges kulcs |
+| slug | text (unique) | URL slug, pl. "aszf", "kapcsolat" |
+| title | text | Oldal címe, pl. "ÁSZF" |
+| content | text | Oldal tartalma (HTML formátumban) |
+| is_published | boolean | Publikálva van-e |
+| created_at | timestamptz | Létrehozás ideje |
+| updated_at | timestamptz | Utolsó módosítás |
+
+### `menu_items` tábla
+A dinamikus menüpontokat tárolja (footer, navbar stb.).
+
+| Oszlop | Típus | Leírás |
+|--------|-------|--------|
+| id | uuid | Elsődleges kulcs |
+| label | text | Megjelenő felirat, pl. "Kapcsolat" |
+| slug | text | Hivatkozott oldal slug-ja |
+| position | text | Hol jelenjen meg: "footer", "navbar" |
+| sort_order | integer | Sorrend |
+| is_visible | boolean | Látható-e |
+| created_at | timestamptz | Létrehozás ideje |
+
+### RLS szabályok
+- **Olvasás:** mindenki (publikus oldalak)
+- **Írás/Módosítás/Törlés:** csak admin (`has_role(auth.uid(), 'admin')`)
 
 ---
 
-## Megoldás (gyors, biztos fix)
-### 1) `send-password-reset` funkcióban a feladó javítása
-**Fájl:** `supabase/functions/send-password-reset/index.ts`
+## 2. Admin felület: Tartalomkezelés
 
-- A `from` mezőt átállítjuk ugyanarra a feladóra, amit a reminder funkció is használ:
-  - `LegolcsóbbKötelező <onboarding@resend.dev>`
+Új admin oldal: `/admin/pages`
 
-Ezzel:
-- azonnal megszűnik a 403-as blokkolás,
-- a jelszó-visszaállító email ki fog menni domain verifikáció nélkül is.
+### Funkciók:
+- **Oldalak listája:** Táblázatban megjelenik az összes oldal (cím, slug, státusz, utolsó módosítás)
+- **Oldal szerkesztése:** Dialógus ablakban szerkeszthető a cím és a tartalom (egyszerű szövegszerkesztő)
+- **Új oldal létrehozása:** Ugyanez a dialógus, üres mezőkkel
+- **Oldal törlése:** Megerősítő dialógus után
+- **Menüpont-kezelés:** Melyik oldalak jelenjenek meg a footerben, milyen sorrendben
 
----
-
-## Opcionális, “profi” megoldás (hogy később saját domainről menjen)
-### 2) Feladó cím konfigurálhatóvá tétele
-**Fájl:** `supabase/functions/send-password-reset/index.ts`
-
-- Bevezetünk egy opcionális környezeti változót (secretet), pl. `RESEND_FROM`
-- Logika:
-  - ha `RESEND_FROM` létezik -> azt használjuk
-  - különben fallback -> `onboarding@resend.dev`
-
-Így:
-- most azonnal működik (fallback)
-- később, ha verifikáljátok a domaint Resend-ben, csak beállítjátok a `RESEND_FROM`-ot pl. `noreply@legolcsobbkotelezo.hu`-ra, és kész.
+### Szerkesztő
+Egyszerű textarea-alapú HTML szerkesztő (a jelenlegi ÁSZF/Adatvédelem stílusával konzisztens). A tartalom szekciókra bontva (h2 címsor + bekezdések) jelenik meg.
 
 ---
 
-## Opcionális finomítások (nem kötelezőek, de javasoltak)
-### 3) E-mail sablon footer link egységesítése
-A password reset emailben jelenleg a footerben `.lovable.app` link van.
-Javaslat: átállítani a publikus domainre (pl. `legolcsobbkotelezo.hu`), hogy egységes legyen a brand.
+## 3. Alapértelmezett oldalak betöltése
 
-### 4) “Operational” log javítás
-Most a function biztonsági okból mindig success üzenetet ad vissza (email enumeráció ellen).
-Ezt megtartjuk, viszont:
-- logolunk egyértelműen Resend küldési hibát (már most is van),
-- így ha valami megint elromlik, könnyű visszanézni.
+Az első migráció létrehozza az alap oldalakat a jelenlegi hardcoded tartalommal:
 
----
-
-## Teszt terv (amit a javítás után végigcsinálunk)
-1) Kérj jelszóemlékeztetőt a `horvath.jozsef@h-kontakt.hu` címre
-2) Ellenőrizzük, hogy a backend logban már **nincs 403**
-3) Megnézed a bejövő levelek közt + spam/promóciók fülön
-4) Rákattintasz a linkre, és a `https://legolcsobbkotelezo.lovable.app/reset-password` oldalon be tudod állítani az új jelszót
+- **GYIK** (slug: "gyik") - a jelenlegi FAQ kérdés-válaszok JSON formátumban
+- **ÁSZF** (slug: "aszf") - a jelenlegi ASZF.tsx tartalma
+- **Adatvédelmi tájékoztató** (slug: "adatvedelem") - a jelenlegi Adatvedelem.tsx tartalma
+- **Kapcsolat** (slug: "kapcsolat") - új, H-Kontakt Group elérhetőségei
+- **Impresszum** (slug: "impresszum") - új, cégadatok
+- **Munkatársaink** (slug: "munkatarsaink") - új, üres sablon
 
 ---
 
-## Érintett fájlok
-- Kötelező:
-  - `supabase/functions/send-password-reset/index.ts` (from cím javítása)
-- Opcionális:
-  - ugyanitt: `RESEND_FROM` támogatás + footer link finomítás
+## 4. Frontend oldalak dinamizálása
+
+### Dinamikus oldal komponens
+Új komponens: `DynamicPage.tsx`
+- A slug alapján betölti az adatbázisból az oldal tartalmát
+- Navbar + Footer keretben jeleníti meg
+- 404-et mutat, ha nem létezik vagy nincs publikálva
+
+### Módosítandó komponensek:
+| Fájl | Változtatás |
+|------|-------------|
+| `src/pages/ASZF.tsx` | Dinamikus tartalomra cserélés (adatbázisból) |
+| `src/pages/Adatvedelem.tsx` | Dinamikus tartalomra cserélés |
+| `src/components/FAQSection.tsx` | GYIK adatok adatbázisból |
+| `src/components/Footer.tsx` | Menüpontok adatbázisból |
+| `src/App.tsx` | Új route-ok: `/kapcsolat`, `/impresszum`, `/munkatarsaink`, `/oldal/:slug` (catch-all dinamikus) |
 
 ---
 
-## Várható eredmény
-A jelszó-visszaállító emailek azonnal ki fognak menni Resend-del, és a user tényleg meg fogja kapni a levelet (nem csak “Email elküldve” UI üzenetet fog látni).
+## 5. Admin menü bővítése
+
+A `DashboardLayout.tsx` admin menüjébe új menüpont:
+- **Tartalom** (ikon: FileEdit) --> `/admin/pages`
+
+---
+
+## 6. Új fájlok
+
+| Fájl | Leírás |
+|------|--------|
+| `src/pages/AdminPages.tsx` | Admin tartalomkezelő oldal |
+| `src/components/admin/PageEditorDialog.tsx` | Oldal szerkesztő dialógus |
+| `src/components/admin/MenuItemsManager.tsx` | Menüpont-kezelő komponens |
+| `src/pages/DynamicPage.tsx` | Dinamikus oldal megjelenítő |
+| `src/hooks/usePages.ts` | Oldalak lekérdezése hook |
+| `src/hooks/useMenuItems.ts` | Menüpontok lekérdezése hook |
+
+---
+
+## 7. Prioritás és sorrend
+
+1. Adatbázis migrációk (pages, menu_items táblák + RLS + seed data)
+2. Hook-ok (usePages, useMenuItems)
+3. Admin oldal (AdminPages + PageEditorDialog + MenuItemsManager)
+4. DynamicPage komponens
+5. Meglévő oldalak átalakítása (ÁSZF, Adatvédelem, GYIK)
+6. Footer dinamizálása
+7. Routing frissítése (App.tsx)
+8. Admin menü bővítése (DashboardLayout)
+
+---
+
+## Technikai megjegyzések
+
+- A GYIK oldal speciális: kérdés-válasz párok JSON-ként tárolódnak a `content` mezőben, a `FAQSection` komponens ezt parse-olja
+- A szerkesztő egyszerű textarea lesz (nem rich text editor), mert a tartalom HTML formátumú, de a struktúra egységes (szekciók, bekezdések, listák)
+- A menüpont-kezelő drag-and-drop nélkül működik, sorrendet számmal lehet beállítani
+- Az admin a "Publikálás" kapcsolóval tudja szabályozni, hogy egy oldal látható-e a nyilvánosság számára
+
