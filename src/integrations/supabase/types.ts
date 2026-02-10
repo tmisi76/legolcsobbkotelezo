@@ -147,6 +147,66 @@ export type Database = {
           },
         ]
       }
+      menu_items: {
+        Row: {
+          created_at: string
+          id: string
+          is_visible: boolean
+          label: string
+          position: string
+          slug: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_visible?: boolean
+          label: string
+          position?: string
+          slug: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_visible?: boolean
+          label?: string
+          position?: string
+          slug?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      pages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          is_published: boolean
+          slug: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_published?: boolean
+          slug: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_published?: boolean
+          slug?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       personal_documents: {
         Row: {
           document_type: Database["public"]["Enums"]["personal_document_type"]

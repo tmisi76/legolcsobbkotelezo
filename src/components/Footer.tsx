@@ -1,8 +1,10 @@
 import { Car, Shield } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useMenuItems } from "@/hooks/useMenuItems";
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
+  const { data: menuItems } = useMenuItems("footer");
 
   return (
     <footer className="bg-foreground py-12">
@@ -21,18 +23,15 @@ const Footer = () => {
 
           {/* Links */}
           <nav className="flex flex-wrap items-center justify-center gap-6 md:gap-8">
-            <Link
-              to="/adatvedelem"
-              className="text-primary-foreground/60 hover:text-primary-foreground transition-colors duration-200 text-sm"
-            >
-              Adatvédelem
-            </Link>
-            <Link
-              to="/aszf"
-              className="text-primary-foreground/60 hover:text-primary-foreground transition-colors duration-200 text-sm"
-            >
-              ÁSZF
-            </Link>
+            {menuItems?.map((item) => (
+              <Link
+                key={item.id}
+                to={`/${item.slug}`}
+                className="text-primary-foreground/60 hover:text-primary-foreground transition-colors duration-200 text-sm"
+              >
+                {item.label}
+              </Link>
+            ))}
           </nav>
         </div>
 

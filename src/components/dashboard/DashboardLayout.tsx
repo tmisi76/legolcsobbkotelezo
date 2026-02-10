@@ -15,7 +15,8 @@ import {
   ChevronRight,
   Users,
   Shield,
-  FileText
+  FileText,
+  FileEdit
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -34,6 +35,7 @@ const baseNavItems = [
 const adminNavItems = [
   { path: "/admin/clients", label: "Potenciális szerződők", icon: Users },
   { path: "/admin/users", label: "Jogosultságok", icon: Shield },
+  { path: "/admin/pages", label: "Tartalom", icon: FileEdit },
 ];
 
 export function DashboardLayout({ children, title }: DashboardLayoutProps) {
