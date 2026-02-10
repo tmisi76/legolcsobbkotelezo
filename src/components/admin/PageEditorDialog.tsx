@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useUpsertPage, Page } from "@/hooks/usePages";
@@ -67,8 +67,8 @@ export function PageEditorDialog({ open, onOpenChange, page }: PageEditorDialogP
             </div>
           </div>
           <div className="space-y-2">
-            <Label>Tartalom (HTML)</Label>
-            <Textarea value={content} onChange={(e) => setContent(e.target.value)} rows={16} className="font-mono text-sm" placeholder="<section><h2>Cím</h2><p>Szöveg...</p></section>" />
+            <Label>Tartalom</Label>
+            <RichTextEditor content={content} onChange={setContent} />
           </div>
           <div className="flex items-center gap-3">
             <Switch checked={isPublished} onCheckedChange={setIsPublished} />
