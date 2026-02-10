@@ -45,8 +45,6 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Combine base nav items with admin items if user is admin
-  const navItems = isAdmin ? [...baseNavItems, ...adminNavItems] : baseNavItems;
 
   const handleLogout = async () => {
     await logout();
@@ -89,7 +87,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
 
         {/* Navigation */}
         <nav className="flex-1 py-4 px-2">
-          {navItems.map((item) => {
+          {baseNavItems.map((item) => {
             const isActive = location.pathname === item.path;
             return (
               <Link
@@ -109,6 +107,38 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
               </Link>
             );
           })}
+
+          {isAdmin && (
+            <>
+              <div className="my-3 mx-1 h-px bg-border" />
+              {!sidebarCollapsed && (
+                <div className="flex items-center gap-2 px-3 py-1.5 mb-1">
+                  <Shield className="w-4 h-4 text-warning" />
+                  <span className="text-xs font-semibold uppercase tracking-wider text-warning">Adminisztráció</span>
+                </div>
+              )}
+              {adminNavItems.map((item) => {
+                const isActive = location.pathname === item.path;
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 transition-colors",
+                      isActive
+                        ? "bg-orange-600 text-white"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                    )}
+                  >
+                    <item.icon className="w-5 h-5 flex-shrink-0" />
+                    {!sidebarCollapsed && (
+                      <span className="font-medium">{item.label}</span>
+                    )}
+                  </Link>
+                );
+              })}
+            </>
+          )}
         </nav>
 
         {/* User Section */}
@@ -178,7 +208,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
           </Button>
         </div>
         <nav className="p-4">
-          {navItems.map((item) => {
+          {baseNavItems.map((item) => {
             const isActive = location.pathname === item.path;
             return (
               <Link
@@ -197,6 +227,35 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
               </Link>
             );
           })}
+
+          {isAdmin && (
+            <>
+              <div className="my-3 h-px bg-border" />
+              <div className="flex items-center gap-2 px-3 py-1.5 mb-1">
+                <Shield className="w-4 h-4 text-warning" />
+                <span className="text-xs font-semibold uppercase tracking-wider text-warning">Adminisztráció</span>
+              </div>
+              {adminNavItems.map((item) => {
+                const isActive = location.pathname === item.path;
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-3 rounded-lg mb-1 transition-colors",
+                      isActive
+                        ? "bg-orange-600 text-white"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                    )}
+                  >
+                    <item.icon className="w-5 h-5" />
+                    <span className="font-medium">{item.label}</span>
+                  </Link>
+                );
+              })}
+            </>
+          )}
         </nav>
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-border">
           <div className="flex items-center gap-3 mb-3">
@@ -251,10 +310,10 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
         </div>
       </main>
 
-      {/* Mobile Bottom Navigation */}
+      {/* Mobile Bottom Navigation - only base items */}
       <nav className="fixed bottom-0 left-0 right-0 z-30 bg-card border-t border-border md:hidden">
         <div className="flex justify-around py-2">
-          {navItems.map((item) => {
+          {baseNavItems.map((item) => {
             const isActive = location.pathname === item.path;
             return (
               <Link
