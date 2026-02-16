@@ -8,7 +8,8 @@ interface EmailVisualEditorProps {
 export function EmailVisualEditor({ html, onChange }: EmailVisualEditorProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const isUpdatingRef = useRef(false);
-  const lastExternalHtmlRef = useRef(html);
+  const lastInternalHtmlRef = useRef(html);
+  const cleanupRef = useRef<(() => void) | undefined>();
 
   const setupEditable = useCallback(() => {
     const iframe = iframeRef.current;
@@ -22,19 +23,19 @@ export function EmailVisualEditor({ html, onChange }: EmailVisualEditorProps) {
     doc.body.style.cursor = "text";
     doc.body.style.fontFamily = "Arial, Helvetica, sans-serif";
 
-    // Listen for input changes
-    const handleInput = () => {
+    const emitChange = () => {
       if (isUpdatingRef.current) return;
       const newHtml = doc.body.innerHTML;
+      lastInternalHtmlRef.current = newHtml;
       onChange(newHtml);
     };
 
-    doc.body.addEventListener("input", handleInput);
+    doc.body.addEventListener("input", emitChange);
 
-    // Also use MutationObserver for changes that don't fire input events
     const observer = new MutationObserver(() => {
       if (isUpdatingRef.current) return;
       const newHtml = doc.body.innerHTML;
+      lastInternalHtmlRef.current = newHtml;
       onChange(newHtml);
     });
 
@@ -45,16 +46,16 @@ export function EmailVisualEditor({ html, onChange }: EmailVisualEditorProps) {
       attributes: true,
     });
 
-    return () => {
-      doc.body.removeEventListener("input", handleInput);
+    cleanupRef.current = () => {
+      doc.body.removeEventListener("input", emitChange);
       observer.disconnect();
     };
   }, [onChange]);
 
-  // Update iframe content when html prop changes externally (e.g. from HTML tab)
+  // Only update iframe when html changes from an EXTERNAL source (e.g. HTML tab)
   useEffect(() => {
-    if (html === lastExternalHtmlRef.current) return;
-    lastExternalHtmlRef.current = html;
+    // Skip if this change originated from the editor itself
+    if (html === lastInternalHtmlRef.current) return;
 
     const iframe = iframeRef.current;
     if (!iframe) return;
@@ -62,19 +63,25 @@ export function EmailVisualEditor({ html, onChange }: EmailVisualEditorProps) {
     const doc = iframe.contentDocument;
     if (!doc || !doc.body) return;
 
-    // Only update if content actually differs from what's in the iframe
     if (doc.body.innerHTML !== html) {
       isUpdatingRef.current = true;
       doc.body.innerHTML = html;
+      lastInternalHtmlRef.current = html;
       isUpdatingRef.current = false;
     }
   }, [html]);
 
+  useEffect(() => {
+    return () => {
+      cleanupRef.current?.();
+    };
+  }, []);
+
   const handleLoad = () => {
+    cleanupRef.current?.();
     setupEditable();
   };
 
-  // Build a full HTML document so styles render correctly
   const srcDoc = `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>

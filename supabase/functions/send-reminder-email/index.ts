@@ -126,7 +126,7 @@ const handler = async (req: Request): Promise<Response> => {
     const placeholderData: Record<string, string> = {
       nev: profile.full_name || 'Felhasználó',
       rendszam: car.license_plate || 'N/A',
-      auto_becenev: car.nickname,
+      auto_becenev: `${car.brand} ${car.model}`,
       marka: car.brand,
       modell: car.model,
       evjarat: String(car.year),
