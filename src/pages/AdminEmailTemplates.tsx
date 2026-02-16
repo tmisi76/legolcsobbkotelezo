@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Save, Eye, Code, Info } from "lucide-react";
+import { Loader2, Save, Eye, Code, Info, Edit3 } from "lucide-react";
+import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -160,22 +161,25 @@ export default function AdminEmailTemplates() {
                 />
               </div>
 
-              <Tabs defaultValue="code">
+              <Tabs defaultValue="editor">
                 <TabsList>
-                  <TabsTrigger value="code" className="gap-1.5">
-                    <Code className="w-4 h-4" />
-                    HTML
+                  <TabsTrigger value="editor" className="gap-1.5">
+                    <Edit3 className="w-4 h-4" />
+                    Szerkesztő
                   </TabsTrigger>
                   <TabsTrigger value="preview" className="gap-1.5">
                     <Eye className="w-4 h-4" />
                     Előnézet
                   </TabsTrigger>
+                  <TabsTrigger value="code" className="gap-1.5">
+                    <Code className="w-4 h-4" />
+                    HTML
+                  </TabsTrigger>
                 </TabsList>
-                <TabsContent value="code">
-                  <Textarea
-                    value={editBodies[template.id] ?? template.body_html}
-                    onChange={e => setEditBodies(prev => ({ ...prev, [template.id]: e.target.value }))}
-                    className="font-mono text-xs min-h-[300px]"
+                <TabsContent value="editor">
+                  <RichTextEditor
+                    content={editBodies[template.id] ?? template.body_html}
+                    onChange={(html) => setEditBodies(prev => ({ ...prev, [template.id]: html }))}
                   />
                 </TabsContent>
                 <TabsContent value="preview">
@@ -187,6 +191,13 @@ export default function AdminEmailTemplates() {
                       sandbox=""
                     />
                   </div>
+                </TabsContent>
+                <TabsContent value="code">
+                  <Textarea
+                    value={editBodies[template.id] ?? template.body_html}
+                    onChange={e => setEditBodies(prev => ({ ...prev, [template.id]: e.target.value }))}
+                    className="font-mono text-xs min-h-[300px]"
+                  />
                 </TabsContent>
               </Tabs>
 
