@@ -20,6 +20,7 @@ export function EmailVisualEditor({ html, onChange }: EmailVisualEditorProps) {
     doc.body.contentEditable = "true";
     doc.body.style.outline = "none";
     doc.body.style.cursor = "text";
+    doc.body.style.fontFamily = "Arial, Helvetica, sans-serif";
 
     // Listen for input changes
     const handleInput = () => {
@@ -77,7 +78,7 @@ export function EmailVisualEditor({ html, onChange }: EmailVisualEditorProps) {
   const srcDoc = `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
-<body style="margin:0;padding:0;">${html}</body>
+<body style="margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;">${html}</body>
 </html>`;
 
   return (
