@@ -6,8 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Save, Eye, Code, Info, Edit3 } from "lucide-react";
-import { RichTextEditor } from "@/components/admin/RichTextEditor";
+import { Loader2, Save, Eye, Code, Info, Edit3, RotateCcw } from "lucide-react";
+import { EmailVisualEditor } from "@/components/admin/EmailVisualEditor";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -15,6 +15,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import {
   Collapsible,
   CollapsibleContent,
@@ -72,7 +83,6 @@ export default function AdminEmailTemplates() {
         body_html: body_html ?? template.body_html,
       });
       toast.success(`✅ ${TEMPLATE_LABELS[templateKey] || templateKey} mentve!`);
-      // Clear edit state
       setEditSubjects(prev => { const n = { ...prev }; delete n[id]; return n; });
       setEditBodies(prev => { const n = { ...prev }; delete n[id]; return n; });
     } catch {
@@ -80,11 +90,16 @@ export default function AdminEmailTemplates() {
     }
   };
 
+  const handleReset = (id: string, templateKey: string) => {
+    setEditSubjects(prev => { const n = { ...prev }; delete n[id]; return n; });
+    setEditBodies(prev => { const n = { ...prev }; delete n[id]; return n; });
+    toast.success(`🔄 ${TEMPLATE_LABELS[templateKey] || templateKey} visszaállítva!`);
+  };
+
   const getPreviewHtml = (id: string) => {
     const template = templates?.find(t => t.id === id);
     if (!template) return "";
     const html = editBodies[id] ?? template.body_html;
-    // Replace placeholders with sample data
     return html
       .split("{{nev}}").join("Kovács János")
       .split("{{rendszam}}").join("ABC-123")
@@ -177,8 +192,8 @@ export default function AdminEmailTemplates() {
                   </TabsTrigger>
                 </TabsList>
                 <TabsContent value="editor">
-                  <RichTextEditor
-                    content={editBodies[template.id] ?? template.body_html}
+                  <EmailVisualEditor
+                    html={editBodies[template.id] ?? template.body_html}
                     onChange={(html) => setEditBodies(prev => ({ ...prev, [template.id]: html }))}
                   />
                 </TabsContent>
@@ -220,6 +235,28 @@ export default function AdminEmailTemplates() {
                   <Eye className="w-4 h-4 mr-2" />
                   Teljes előnézet
                 </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="outline">
+                      <RotateCcw className="w-4 h-4 mr-2" />
+                      Visszaállítás
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Visszaállítás eredeti állapotra</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Biztosan visszaállítod az eredeti sablont? A mostani módosításaid elvesznek.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Mégse</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => handleReset(template.id, template.template_key)}>
+                        Visszaállítás
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             </CardContent>
           </Card>
