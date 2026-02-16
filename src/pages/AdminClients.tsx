@@ -457,9 +457,9 @@ export default function AdminClients() {
                           </TableCell>
                           <TableCell>
                             <div className="flex flex-col">
-                              <span className="font-medium">{car.nickname}</span>
+                              <span className="font-medium">{car.brand} {car.model}</span>
                               <span className="text-xs text-muted-foreground">
-                                {car.brand} {car.model} ({car.year})
+                                {car.year} · {car.engine_power_kw ? `${car.engine_power_kw} kW` : ""}
                               </span>
                             </div>
                           </TableCell>

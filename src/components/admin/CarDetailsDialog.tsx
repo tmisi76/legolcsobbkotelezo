@@ -211,7 +211,7 @@ export function CarDetailsDialog({ car, open, onOpenChange, onNotesUpdate }: Car
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
             <span>
-              {car.profiles?.full_name || "Ismeretlen"} – {car.nickname}
+              {car.profiles?.full_name || "Ismeretlen"} – {car.brand} {car.model}
             </span>
             {getStatusBadge(car.processing_status)}
           </DialogTitle>
@@ -296,10 +296,6 @@ export function CarDetailsDialog({ car, open, onOpenChange, onNotesUpdate }: Car
                 <p className="font-medium">
                   {car.engine_power_kw ? `${car.engine_power_kw} kW` : "Nincs megadva"}
                 </p>
-              </div>
-              <div>
-                <span className="text-muted-foreground text-sm">Becenév</span>
-                <p className="font-medium">{car.nickname}</p>
               </div>
             </div>
           </section>

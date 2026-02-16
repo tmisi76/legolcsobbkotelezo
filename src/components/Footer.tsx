@@ -1,10 +1,11 @@
 import { Car, Shield } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useMenuItems } from "@/hooks/useMenuItems";
+import { usePages } from "@/hooks/usePages";
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
-  const { data: menuItems } = useMenuItems("footer");
+  const { data: pages } = usePages();
+  const publishedPages = pages?.filter((p) => p.is_published) || [];
 
   return (
     <footer className="bg-foreground py-12">
@@ -23,13 +24,13 @@ const Footer = () => {
 
           {/* Links */}
           <nav className="flex flex-wrap items-center justify-center gap-6 md:gap-8">
-            {menuItems?.map((item) => (
+            {publishedPages.map((page) => (
               <Link
-                key={item.id}
-                to={`/${item.slug}`}
+                key={page.id}
+                to={`/${page.slug}`}
                 className="text-primary-foreground/60 hover:text-primary-foreground transition-colors duration-200 text-sm"
               >
-                {item.label}
+                {page.title}
               </Link>
             ))}
           </nav>

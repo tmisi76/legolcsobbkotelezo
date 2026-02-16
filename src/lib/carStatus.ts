@@ -13,11 +13,17 @@ export interface CarStatus {
   progressPercent: number;
 }
 
+function parseLocalDate(dateStr: string | Date): Date {
+  if (dateStr instanceof Date) return dateStr;
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
 export function calculateCarStatus(anniversaryDate: string | Date): CarStatus {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   
-  const anniversary = new Date(anniversaryDate);
+  const anniversary = parseLocalDate(anniversaryDate);
   anniversary.setHours(0, 0, 0, 0);
   
   const daysRemaining = differenceInDays(anniversary, today);
@@ -98,7 +104,7 @@ export function calculateCarStatus(anniversaryDate: string | Date): CarStatus {
 }
 
 export function getTimelineMarkers(anniversaryDate: string | Date) {
-  const anniversary = new Date(anniversaryDate);
+  const anniversary = parseLocalDate(anniversaryDate);
   anniversary.setHours(0, 0, 0, 0);
   
   return {
