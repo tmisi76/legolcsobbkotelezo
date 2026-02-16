@@ -75,6 +75,18 @@ const handler = async (req: Request): Promise<Response> => {
       },
     });
 
+    // Check if user already exists
+    const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
+    const existingUser = existingUsers?.users?.find(
+      (u) => u.email?.toLowerCase() === email.toLowerCase()
+    );
+    if (existingUser) {
+      return new Response(
+        JSON.stringify({ error: "Ez az email cím már regisztrálva van. Ha elfelejtetted a jelszavad, használd az elfelejtett jelszó funkciót." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Generate signup confirmation link using admin API
     const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
       type: "signup",

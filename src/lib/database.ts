@@ -146,11 +146,16 @@ export async function getAppStats(): Promise<AppStats | null> {
 
 // ============= Utility Functions =============
 
+function parseLocalDate(dateStr: string): Date {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
 export function getDaysUntilAnniversary(anniversaryDate: string): number {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   
-  const anniversary = new Date(anniversaryDate);
+  const anniversary = parseLocalDate(anniversaryDate);
   anniversary.setHours(0, 0, 0, 0);
   
   // If anniversary has passed this year, calculate for next year
@@ -177,7 +182,7 @@ export function formatHungarianNumber(num: number): string {
 }
 
 export function formatHungarianDate(dateString: string): string {
-  const date = new Date(dateString);
+  const date = parseLocalDate(dateString);
   return date.toLocaleDateString('hu-HU', {
     year: 'numeric',
     month: 'long',

@@ -279,13 +279,13 @@ const RegisterPage = () => {
                     <div className="space-y-1 leading-none">
                       <FormLabel className="text-sm font-normal text-muted-foreground">
                         Elfogadom az{" "}
-                        <Link to="/adatvedelem" className="text-primary hover:underline">
+                        <a href="/adatvedelem" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
                           Adatvédelmi szabályzatot
-                        </Link>{" "}
+                        </a>{" "}
                         és az{" "}
-                        <Link to="/aszf" className="text-primary hover:underline">
+                        <a href="/aszf" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
                           ÁSZF
-                        </Link>
+                        </a>
                         -et
                       </FormLabel>
                       <FormMessage />
