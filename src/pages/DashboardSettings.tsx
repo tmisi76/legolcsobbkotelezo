@@ -7,7 +7,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Form,
   FormControl,
@@ -95,16 +94,12 @@ export default function DashboardSettings() {
   
   // Notification settings state
   const [emailReminders, setEmailReminders] = useState(profile?.email_reminders_enabled ?? true);
-  const [reminderDays, setReminderDays] = useState<string[]>(
-    (profile?.reminder_days || "60,50,40").split(",").map(d => d.trim())
-  );
   const [wantsCallback, setWantsCallback] = useState(profile?.wants_callback ?? false);
 
   // Update state when profile loads
   useEffect(() => {
     if (profile) {
       setEmailReminders(profile.email_reminders_enabled);
-      setReminderDays((profile.reminder_days || "60,50,40").split(",").map(d => d.trim()));
       setWantsCallback(profile.wants_callback);
     }
   }, [profile]);
@@ -169,7 +164,6 @@ export default function DashboardSettings() {
     try {
       const result = await updateProfile({
         email_reminders_enabled: emailReminders,
-        reminder_days: reminderDays.join(","),
       });
       if (result.error) throw result.error;
       toast.success("✅ Értesítési beállítások mentve!");
@@ -268,19 +262,6 @@ export default function DashboardSettings() {
     }
   };
 
-  const toggleReminderDay = (day: string) => {
-    setReminderDays(prev => {
-      if (prev.includes(day)) {
-        // Don't allow removing the last one
-        if (prev.length === 1) {
-          toast.error("Legalább egy emlékeztetőt ki kell választanod!");
-          return prev;
-        }
-        return prev.filter(d => d !== day);
-      }
-      return [...prev, day];
-    });
-  };
 
   // Show success overlay after account deletion
   if (showDeleteSuccess) {
@@ -467,36 +448,17 @@ export default function DashboardSettings() {
               />
             </div>
 
-            {/* Reminder timing */}
+            {/* Info about reminder timing */}
             {emailReminders && (
-              <div className="space-y-3 pl-4 border-l-2 border-primary/20">
-                <p className="text-sm font-medium text-foreground">
-                  Emlékeztető időzítése
+              <div className="space-y-2 pl-4 border-l-2 border-primary/20">
+                <p className="text-sm text-muted-foreground">
+                  Automatikusan 3 emlékeztetőt küldünk:
                 </p>
-                <div className="space-y-2">
-                  {[
-                    { value: "60", label: "60 nappal az évforduló előtt (váltási időszak kezdete)" },
-                    { value: "50", label: "50 nappal az évforduló előtt" },
-                    { value: "40", label: "40 nappal az évforduló előtt (sürgős)" },
-                  ].map((option) => (
-                    <div key={option.value} className="flex items-center gap-3">
-                      <Checkbox
-                        id={`reminder-${option.value}`}
-                        checked={reminderDays.includes(option.value)}
-                        onCheckedChange={() => toggleReminderDay(option.value)}
-                      />
-                      <label 
-                        htmlFor={`reminder-${option.value}`}
-                        className="text-sm text-muted-foreground cursor-pointer"
-                      >
-                        {option.label}
-                      </label>
-                    </div>
-                  ))}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Legalább egy emlékeztetőt ki kell választanod
-                </p>
+                <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                  <li>60 nappal az évforduló előtt (váltási időszak kezdete)</li>
+                  <li>50 nappal az évforduló előtt</li>
+                  <li>40 nappal az évforduló előtt (sürgős)</li>
+                </ul>
               </div>
             )}
 

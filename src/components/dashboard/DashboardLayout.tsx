@@ -16,7 +16,9 @@ import {
   Users,
   Shield,
   FileText,
-  FileEdit
+  FileEdit,
+  Mail,
+  History
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -36,6 +38,8 @@ const adminNavItems = [
   { path: "/admin/clients", label: "Potenciális szerződők", icon: Users },
   { path: "/admin/users", label: "Jogosultságok", icon: Shield },
   { path: "/admin/pages", label: "Tartalom", icon: FileEdit },
+  { path: "/admin/email-templates", label: "Email sablonok", icon: Mail },
+  { path: "/admin/email-logs", label: "Email napló", icon: History },
 ];
 
 export function DashboardLayout({ children, title }: DashboardLayoutProps) {
