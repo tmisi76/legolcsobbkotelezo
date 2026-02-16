@@ -41,7 +41,7 @@ const TEMPLATE_LABELS: Record<string, string> = {
 const PLACEHOLDERS = [
   { key: "{{nev}}", desc: "Felhasználó neve" },
   { key: "{{rendszam}}", desc: "Rendszám" },
-  { key: "{{auto_becenev}}", desc: "Autó beceneve" },
+  
   { key: "{{marka}}", desc: "Márka" },
   { key: "{{modell}}", desc: "Modell" },
   { key: "{{evjarat}}", desc: "Évjárat" },
@@ -103,7 +103,7 @@ export default function AdminEmailTemplates() {
     return html
       .split("{{nev}}").join("Kovács János")
       .split("{{rendszam}}").join("ABC-123")
-      .split("{{auto_becenev}}").join("Családi autó")
+      
       .split("{{marka}}").join("Toyota")
       .split("{{modell}}").join("Corolla")
       .split("{{evjarat}}").join("2020")
