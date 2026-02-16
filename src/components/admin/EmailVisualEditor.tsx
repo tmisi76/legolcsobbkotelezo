@@ -10,6 +10,11 @@ export function EmailVisualEditor({ html, onChange }: EmailVisualEditorProps) {
   const isUpdatingRef = useRef(false);
   const lastInternalHtmlRef = useRef(html);
   const cleanupRef = useRef<(() => void) | undefined>();
+  const onChangeRef = useRef(onChange);
+  const initialHtmlRef = useRef(html);
+
+  // Always keep onChangeRef fresh
+  onChangeRef.current = onChange;
 
   const setupEditable = useCallback(() => {
     const iframe = iframeRef.current;
@@ -27,7 +32,7 @@ export function EmailVisualEditor({ html, onChange }: EmailVisualEditorProps) {
       if (isUpdatingRef.current) return;
       const newHtml = doc.body.innerHTML;
       lastInternalHtmlRef.current = newHtml;
-      onChange(newHtml);
+      onChangeRef.current(newHtml);
     };
 
     doc.body.addEventListener("input", emitChange);
@@ -36,7 +41,7 @@ export function EmailVisualEditor({ html, onChange }: EmailVisualEditorProps) {
       if (isUpdatingRef.current) return;
       const newHtml = doc.body.innerHTML;
       lastInternalHtmlRef.current = newHtml;
-      onChange(newHtml);
+      onChangeRef.current(newHtml);
     });
 
     observer.observe(doc.body, {
@@ -50,11 +55,10 @@ export function EmailVisualEditor({ html, onChange }: EmailVisualEditorProps) {
       doc.body.removeEventListener("input", emitChange);
       observer.disconnect();
     };
-  }, [onChange]);
+  }, []);
 
   // Only update iframe when html changes from an EXTERNAL source (e.g. HTML tab)
   useEffect(() => {
-    // Skip if this change originated from the editor itself
     if (html === lastInternalHtmlRef.current) return;
 
     const iframe = iframeRef.current;
@@ -82,10 +86,11 @@ export function EmailVisualEditor({ html, onChange }: EmailVisualEditorProps) {
     setupEditable();
   };
 
+  // srcDoc is built ONLY from initialHtmlRef — never changes between renders
   const srcDoc = `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
-<body style="margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;">${html}</body>
+<body style="margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;">${initialHtmlRef.current}</body>
 </html>`;
 
   return (
