@@ -1,81 +1,97 @@
 
+# Hibajavitasi terv - Ugyfel altal talalt problemak
 
-# Javitas: Email szerkeszto - ujratoltesi ciklus megszuntetese
+## Osszefoglalo
+Az ugyfel altal jelzett hibak:
+1. Email sablon szerkeszto - mar folyamatban (elozo uzenetek)
+2. Footer linkek nem jelennek meg a kulsos oldalon
+3. Admin "Potencialis szerzodok" oldalon meg latszik a becenev
+4. Regisztracio: dupla email, linkek ugyanabban az ablakban nyilnak, hibauzenet
+5. Napszamitas 1 nappal elcsuszva (UTC timezone bug)
 
-## Problema
-A jelenlegi `EmailVisualEditor` komponensben a `srcDoc` prop minden React renderkor ujraszamitodik, mert kozvetlenul a `html` prop-bol epul. Amikor a felhasznalo beir egy betut:
+---
 
-1. Az iframe `input` esemenye meghivja `onChange(newHtml)`
-2. A szulo komponens frissiti az `editBodies` state-et
-3. React ujrarendereli az `EmailVisualEditor`-t uj `html` prop-pal
-4. A `srcDoc` ujraszamitodik -> **az iframe teljesen ujratoltodik**
-5. A kurzor es a fokusz elveszik
+## 1. Footer linkek nem jelennek meg a kulsos oldalon
 
-A `lastInternalHtmlRef` megoldas nem segit, mert a `srcDoc` valtozasa az iframe teljes ujratoltesehez vezet -- ez nem `innerHTML` csere, hanem egy uj dokumentum betoltese.
+**Problema:** A kulsos oldal Footer komponense a `menu_items` tablabol toltodik `position="footer"` szuressel. Ha az admin a Tartalom fulnel letrehoz egy oldalt es publikalja, az automatikusan nem kerul be a footer menu elemek koze -- ezeket kulon kell felvenni a MenuItemsManager-ben.
 
-## Megoldas
+**Megoldas:** A Footer-be a `menu_items` mellett a publikalt `pages` tablabol is megjelenitsuk a linkeket. Igy ha egy oldal publikalt, automatikusan megjelenik a Footer-ben (pl. Adatvedelmi Tajekoztato, ASZF, GYIK, Impresszum, Kapcsolat).
 
-Az iframe `srcDoc`-jat **csak egyszer** allitjuk be, az elso renderkor. Utana minden valtozast `doc.body.innerHTML`-en keresztul kezelunk. Ezt ugy erjuk el, hogy a `srcDoc` erteket egy `useRef`-ben taroljuk, es soha nem frissitjuk.
+**Erintett fajl:** `src/components/Footer.tsx`
+- A meglevo `useMenuItems("footer")` melle behuzzuk a publikalt oldalakat is (`usePages` hook)
+- A Footer linkek koze beillesztjuk az osszes publikalt oldalt, aminek van slug-ja
 
-### Erintett fajl
-- `src/components/admin/EmailVisualEditor.tsx`
+---
 
-### Konkret valtozasok
+## 2. Becenev eltavolitasa az admin oldalrol
 
-1. **Uj ref az initial HTML-nek**: `initialHtmlRef = useRef(html)` -- ez csak egyszer kap erteket, a komponens mountolasakor
-2. **srcDoc csak az initialHtmlRef-bol epul**: Igy az iframe soha nem toltodik ujra a szerkesztes soran
-3. **A `setupEditable` es az external update useEffect valtozatlan marad** -- az external update (HTML fulrol) tovabbra is `doc.body.innerHTML`-t allitja
-4. **Az `onChange` callback-et `useRef`-ben taroljuk**, hogy a `setupEditable` `useCallback` ne fuggjon tole, igy a MutationObserver sem lesz ujra-beallitva renderkor
+**Problema:** A "Potencialis szerzodok" tablazatban es a reszletes dialogusban meg megjelenik a `nickname` mezo, holott azt mar nem keri be a rendszer (automatikusan `brand + model`).
 
-### Uj kod vazlat
+**Erintett fajlok:**
 
+**`src/pages/AdminClients.tsx` (460-463. sor):**
+- A tablazatban a `car.nickname` helyett kozvetlenul `car.brand car.model` jelenik meg
+- Az alatta levo `car.brand car.model (car.year)` sort atirjuk csak `car.year` vagy eltavolitjuk a duplikaciòt
+
+**`src/components/admin/CarDetailsDialog.tsx` (301-303. sor):**
+- Az "Auto adatai" szekciobol eltavolitjuk a "Becenev" mezot
+- A dialog cimsorbol (214. sor) a `car.nickname` helyett `car.brand car.model`
+
+---
+
+## 3. Regisztracio javitasok
+
+### 3a. Dupla email regisztracio megakadalyozasa
+**Problema:** Ugyanazzal az email cimmel tobbszor is lehet regisztralni.
+
+**Erintett fajl:** `supabase/functions/send-email-confirmation/index.ts`
+- A `generateLink({ type: "signup" })` hivas elott ellenorizzuk, hogy letezik-e mar felhasznalo az adott email cimmel
+- Ha igen, visszaadjuk a hibaüzenetet: "Ez az email cim mar regisztralva van. Ha elfelejtetted a jelszavad, hasznald az elfelejtett jelszo funkciót."
+
+### 3b. ASZF es Adatvedelem linkek uj ablakban
+**Problema:** A regisztracios oldalon az Adatvedelmi szabalyzat es ASZF linkek ugyanabban az ablakban nyilnak meg, igy az ügyfél elvesziti a mar beirt adatokat.
+
+**Erintett fajl:** `src/pages/Register.tsx` (282-288. sor)
+- A `<Link to="/adatvedelem">` es `<Link to="/aszf">` elemeket `<a href="..." target="_blank" rel="noopener noreferrer">` elemekre csereljuk
+
+---
+
+## 4. Napszamitas javitasa (off-by-one bug)
+
+**Problema:** A napszamitas 1 nappal elcsuszhat, mert a `new Date('2026-02-19')` JavaScript-ben UTC idozonaban ertelmezheto (ejfel UTC), ami CET idozonaban (Magyarorszag) az elozo nap 23:00-nak felel meg. Igy a `setHours(0,0,0,0)` utana februar 18-at ad februar 19 helyett.
+
+**Megoldas:** A datum-string-ek parszolasanal explicit lokalis idot hasznalunk, pl. `new Date('2026-02-19T00:00:00')` (T idovel mar lokalisan ertelmezheto), vagy manualis parsolas: `new Date(year, month-1, day)`.
+
+**Erintett fajlok:**
+
+**`src/lib/carStatus.ts`:**
+- `calculateCarStatus` fuggveny (20-21. sor): `new Date(anniversaryDate)` lecserelese helyes lokalis parszolasra
+- `getTimelineMarkers` fuggveny (101. sor): ugyanaz
+
+**`src/lib/database.ts`:**
+- `getDaysUntilAnniversary` fuggveny (153-154. sor): ugyanaz
+- `formatHungarianDate` fuggveny (180. sor): ugyanaz
+
+**`src/pages/AdminClients.tsx`:**
+- `getDaysUntilAnniversary` fuggveny (168. sor): `parseISO` mar hasznalva, de a `new Date(today.getFullYear(), ...)` resznel is kell figyelni
+
+**Segedfiggveny letrehozasa:**
 ```typescript
-export function EmailVisualEditor({ html, onChange }: EmailVisualEditorProps) {
-  const iframeRef = useRef<HTMLIFrameElement>(null);
-  const isUpdatingRef = useRef(false);
-  const lastInternalHtmlRef = useRef(html);
-  const cleanupRef = useRef<(() => void) | undefined>();
-  const onChangeRef = useRef(onChange);
-  const initialHtmlRef = useRef(html);  // csak egyszer
-
-  // onChange mindig friss
-  onChangeRef.current = onChange;
-
-  const setupEditable = useCallback(() => {
-    // ... contentEditable beallitas ...
-
-    const emitChange = () => {
-      if (isUpdatingRef.current) return;
-      const newHtml = doc.body.innerHTML;
-      lastInternalHtmlRef.current = newHtml;
-      onChangeRef.current(newHtml);  // ref-en keresztul, nincs fuggoseg
-    };
-
-    // ... listener + observer beallitas ...
-  }, []);  // ures fuggoseg tomb!
-
-  // External update useEffect -- valtozatlan
-  useEffect(() => {
-    if (html === lastInternalHtmlRef.current) return;
-    // ... doc.body.innerHTML = html ...
-  }, [html]);
-
-  // srcDoc CSAK az initial HTML-bol epul, soha nem valtozik
-  const srcDoc = `<!DOCTYPE html>
-<html>
-<head>...</head>
-<body style="margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;">
-  ${initialHtmlRef.current}
-</body>
-</html>`;
-
-  return <iframe ref={iframeRef} srcDoc={srcDoc} onLoad={handleLoad} ... />;
+// Helyes datum parsolas timezone-problemak elkerulesehez
+function parseLocalDate(dateStr: string): Date {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(y, m - 1, d);
 }
 ```
 
-### Miert mukodik ez
-- Az iframe `srcDoc`-ja soha nem valtozik renderek kozott -> nincs ujratoltes
-- A gepeles soran az `onChange` csak a state-et frissiti, a React rendereles nem erinti az iframe-et
-- Kulso valtozas (HTML ful) tovabbra is mukodik az `useEffect`-en keresztul, ami `doc.body.innerHTML`-t allitja
-- A `useCallback` ures fuggoseggel es `onChangeRef` hasznalataval a MutationObserver nem all le/ujra minden renderkor
+---
 
+## Osszefoglalas
+
+| # | Hiba | Fajl(ok) | Suly |
+|---|------|----------|------|
+| 1 | Footer linkek | Footer.tsx | Kozep |
+| 2 | Becenev admin | AdminClients.tsx, CarDetailsDialog.tsx | Konnyu |
+| 3a | Dupla regisztracio | send-email-confirmation/index.ts | Kozep |
+| 3b | Linkek uj ablakban | Register.tsx | Konnyu |
+| 4 | Nap off-by-one | carStatus.ts, database.ts, AdminClients.tsx | Fontos |
