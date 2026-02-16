@@ -147,6 +147,36 @@ export type Database = {
           },
         ]
       }
+      email_templates: {
+        Row: {
+          body_html: string
+          created_at: string
+          description: string | null
+          id: string
+          subject: string
+          template_key: string
+          updated_at: string
+        }
+        Insert: {
+          body_html: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          subject: string
+          template_key: string
+          updated_at?: string
+        }
+        Update: {
+          body_html?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          subject?: string
+          template_key?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       menu_items: {
         Row: {
           created_at: string
@@ -278,25 +308,46 @@ export type Database = {
       }
       reminder_logs: {
         Row: {
+          callback_requested: boolean
           car_id: string
+          car_nickname: string | null
           email_opened: boolean
           id: string
+          license_plate: string | null
+          link_clicked: boolean
+          offer_requested: boolean
           reminder_type: string
           sent_at: string
+          user_email: string | null
+          user_name: string | null
         }
         Insert: {
+          callback_requested?: boolean
           car_id: string
+          car_nickname?: string | null
           email_opened?: boolean
           id?: string
+          license_plate?: string | null
+          link_clicked?: boolean
+          offer_requested?: boolean
           reminder_type: string
           sent_at?: string
+          user_email?: string | null
+          user_name?: string | null
         }
         Update: {
+          callback_requested?: boolean
           car_id?: string
+          car_nickname?: string | null
           email_opened?: boolean
           id?: string
+          license_plate?: string | null
+          link_clicked?: boolean
+          offer_requested?: boolean
           reminder_type?: string
           sent_at?: string
+          user_email?: string | null
+          user_name?: string | null
         }
         Relationships: [
           {

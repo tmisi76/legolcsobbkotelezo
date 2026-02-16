@@ -22,9 +22,12 @@ import AdminClients from "./pages/AdminClients";
 import AdminUsers from "./pages/AdminUsers";
 import AdminEmailPreview from "./pages/AdminEmailPreview";
 import AdminPages from "./pages/AdminPages";
+import AdminEmailTemplates from "./pages/AdminEmailTemplates";
+import AdminEmailLogs from "./pages/AdminEmailLogs";
 import Adatvedelem from "./pages/Adatvedelem";
 import ASZF from "./pages/ASZF";
 import DynamicPage from "./pages/DynamicPage";
+import EmailActionConfirmation from "./pages/EmailActionConfirmation";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -153,6 +156,22 @@ const App = () => (
                 </AdminProtectedRoute>
               }
             />
+            <Route
+              path="/admin/email-templates"
+              element={
+                <AdminProtectedRoute>
+                  <AdminEmailTemplates />
+                </AdminProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/email-logs"
+              element={
+                <AdminProtectedRoute>
+                  <AdminEmailLogs />
+                </AdminProtectedRoute>
+              }
+            />
             {/* Legal pages */}
             <Route path="/adatvedelem" element={<Adatvedelem />} />
             <Route path="/aszf" element={<ASZF />} />
@@ -160,6 +179,7 @@ const App = () => (
             <Route path="/impresszum" element={<DynamicPage />} />
             <Route path="/munkatarsaink" element={<DynamicPage />} />
             <Route path="/oldal/:slug" element={<DynamicPage />} />
+            <Route path="/email-action-confirm" element={<EmailActionConfirmation />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
