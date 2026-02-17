@@ -287,7 +287,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
       {/* Main Content */}
       <main
         className={cn(
-          "transition-all duration-300 pt-14 md:pt-0",
+          "transition-all duration-300 pt-14 md:pt-0 min-h-screen flex flex-col",
           sidebarCollapsed ? "md:ml-16" : "md:ml-64"
         )}
       >
@@ -310,7 +310,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
         </header>
 
         {/* Page Content */}
-        <div className="p-4 md:p-6 pb-20 md:pb-6">
+        <div className="p-4 md:p-6 pb-20 md:pb-6 flex-1">
           {children}
         </div>
 
