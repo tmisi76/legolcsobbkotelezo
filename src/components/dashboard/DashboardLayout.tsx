@@ -21,7 +21,7 @@ import {
   History
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import Footer from "@/components/Footer";
+import { DashboardFooter } from "@/components/dashboard/DashboardFooter";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -56,7 +56,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
   };
 
   return (
-    <div className="min-h-screen bg-muted/30">
+    <div className="min-h-screen bg-background">
       {/* Desktop Sidebar */}
       <aside
         className={cn(
@@ -101,8 +101,8 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                 className={cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 transition-colors",
                   isActive
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                    ? "bg-primary/10 text-primary font-semibold"
+                    : "text-muted-foreground hover:bg-primary/5 hover:text-foreground"
                 )}
               >
                 <item.icon className="w-5 h-5 flex-shrink-0" />
@@ -131,8 +131,8 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                     className={cn(
                       "flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 transition-colors",
                       isActive
-                        ? "bg-orange-600 text-white"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                        ? "bg-orange-50 text-orange-600 font-semibold"
+                        : "text-muted-foreground hover:bg-orange-50/50 hover:text-foreground"
                     )}
                   >
                     <item.icon className="w-5 h-5 flex-shrink-0" />
@@ -223,8 +223,8 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                 className={cn(
                   "flex items-center gap-3 px-3 py-3 rounded-lg mb-1 transition-colors",
                   isActive
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                    ? "bg-primary/10 text-primary font-semibold"
+                    : "text-muted-foreground hover:bg-primary/5 hover:text-foreground"
                 )}
               >
                 <item.icon className="w-5 h-5" />
@@ -250,8 +250,8 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                     className={cn(
                       "flex items-center gap-3 px-3 py-3 rounded-lg mb-1 transition-colors",
                       isActive
-                        ? "bg-orange-600 text-white"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                        ? "bg-orange-50 text-orange-600 font-semibold"
+                        : "text-muted-foreground hover:bg-orange-50/50 hover:text-foreground"
                     )}
                   >
                     <item.icon className="w-5 h-5" />
@@ -292,7 +292,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
         )}
       >
         {/* Top Header */}
-        <header className="hidden md:flex h-16 bg-card border-b border-border items-center justify-between px-6">
+        <header className="hidden md:flex h-16 bg-card/80 backdrop-blur-sm border-b border-border/50 items-center justify-between px-6">
           <div>
             <h1 className="text-xl font-bold text-foreground">{title}</h1>
           </div>
@@ -315,7 +315,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
         </div>
 
         {/* Footer */}
-        <Footer />
+        <DashboardFooter />
       </main>
 
       {/* Mobile Bottom Navigation - only base items */}

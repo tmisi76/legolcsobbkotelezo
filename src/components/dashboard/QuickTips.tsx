@@ -19,7 +19,7 @@ export function QuickTips() {
   }, []);
 
   return (
-    <div className="bg-card rounded-xl p-5 border border-border">
+    <div className="bg-white rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
       <div className="flex items-start gap-3">
         <div className="w-10 h-10 rounded-lg bg-warning/10 flex items-center justify-center flex-shrink-0">
           <Lightbulb className="w-5 h-5 text-warning" />
