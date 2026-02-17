@@ -83,8 +83,10 @@ export default function AdminEmailTemplates() {
         body_html: body_html ?? template.body_html,
       });
       toast.success(`✅ ${TEMPLATE_LABELS[templateKey] || templateKey} mentve!`);
-      setEditSubjects(prev => { const n = { ...prev }; delete n[id]; return n; });
-      setEditBodies(prev => { const n = { ...prev }; delete n[id]; return n; });
+      // Keep the saved values in edit state so the editor doesn't revert
+      // to stale server data while the query refreshes
+      setEditSubjects(prev => ({ ...prev, [id]: subject ?? template.subject }));
+      setEditBodies(prev => ({ ...prev, [id]: body_html ?? template.body_html }));
     } catch {
       toast.error("Hiba történt a mentés során.");
     }
