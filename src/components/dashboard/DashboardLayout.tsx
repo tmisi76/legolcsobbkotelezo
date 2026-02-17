@@ -21,6 +21,7 @@ import {
   History
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import Footer from "@/components/Footer";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -309,9 +310,12 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
         </header>
 
         {/* Page Content */}
-        <div className="p-4 md:p-6">
+        <div className="p-4 md:p-6 pb-20 md:pb-6">
           {children}
         </div>
+
+        {/* Footer */}
+        <Footer />
       </main>
 
       {/* Mobile Bottom Navigation - only base items */}

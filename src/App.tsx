@@ -180,6 +180,8 @@ const App = () => (
             <Route path="/munkatarsaink" element={<DynamicPage />} />
             <Route path="/oldal/:slug" element={<DynamicPage />} />
             <Route path="/email-action-confirm" element={<EmailActionConfirmation />} />
+            {/* Dynamic pages by slug - must be before catch-all */}
+            <Route path="/:slug" element={<DynamicPage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
