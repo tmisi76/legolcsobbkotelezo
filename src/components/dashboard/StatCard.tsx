@@ -32,7 +32,7 @@ export function StatCard({
   isLoading = false,
 }: StatCardProps) {
   return (
-    <div className="bg-card rounded-xl p-6 shadow-sm border border-border">
+    <div className="bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between">
         <div
           className={cn(

@@ -52,7 +52,7 @@ export function CarPreviewCard({
   return (
     <Link
       to={`/dashboard/cars/${id}`}
-      className="block bg-card rounded-xl p-4 border border-border hover:border-primary/50 hover:shadow-md transition-all"
+      className="block bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition-all"
     >
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-3">
