@@ -1,97 +1,75 @@
 
-# Hibajavitasi terv - Ugyfel altal talalt problemak
+# Harom hiba javitasa - Barbara ügyfél visszajelzese
 
-## Osszefoglalo
-Az ugyfel altal jelzett hibak:
-1. Email sablon szerkeszto - mar folyamatban (elozo uzenetek)
-2. Footer linkek nem jelennek meg a kulsos oldalon
-3. Admin "Potencialis szerzodok" oldalon meg latszik a becenev
-4. Regisztracio: dupla email, linkek ugyanabban az ablakban nyilnak, hibauzenet
-5. Napszamitas 1 nappal elcsuszva (UTC timezone bug)
+## 1. Email sablon szerkeszto: dupla mentes szukseges
 
----
+### Problema
+Mentes utan a `handleSave` torli az `editBodies[id]` erteket (86-87. sor, AdminEmailTemplates.tsx). Igy a komponens visszaesik a `template.body_html` ertekre, ami meg a REGI ertek a szerverrol, amig a `queryClient.invalidateQueries` nem frissiti. Ez az `EmailVisualEditor`-nak kulso valtozaskent erkezik, es visszaallitja az iframe tartalmat a regi HTML-re.
 
-## 1. Footer linkek nem jelennek meg a kulsos oldalon
+### Megoldas
+A `handleSave` sikere utan NE toroljuk az `editBodies` erteket, amig a query nem frissul. Egyszerubb megoldas: a `handleSave`-ben a `mutateAsync` utan varjunk a query ujratolteseig, es UTANA toroljuk az edit state-et. Vagy: a torles helyet az `editBodies`-t allitsuk a mentett ertekre, ne toroljuk.
 
-**Problema:** A kulsos oldal Footer komponense a `menu_items` tablabol toltodik `position="footer"` szuressel. Ha az admin a Tartalom fulnel letrehoz egy oldalt es publikalja, az automatikusan nem kerul be a footer menu elemek koze -- ezeket kulon kell felvenni a MenuItemsManager-ben.
+**Erintett fajl:** `src/pages/AdminEmailTemplates.tsx` (86-87. sor)
+- Mentes utan az `editBodies[id]`-t allitsuk az elmentett ertekre ahelyett, hogy toroljuk
+- Igy a szerkeszto nem ugrik vissza a regi sablonra
 
-**Megoldas:** A Footer-be a `menu_items` mellett a publikalt `pages` tablabol is megjelenitsuk a linkeket. Igy ha egy oldal publikalt, automatikusan megjelenik a Footer-ben (pl. Adatvedelmi Tajekoztato, ASZF, GYIK, Impresszum, Kapcsolat).
+### Valtozas
+```
+// ELOTTE (86-87. sor):
+setEditSubjects(prev => { const n = { ...prev }; delete n[id]; return n; });
+setEditBodies(prev => { const n = { ...prev }; delete n[id]; return n; });
 
-**Erintett fajl:** `src/components/Footer.tsx`
-- A meglevo `useMenuItems("footer")` melle behuzzuk a publikalt oldalakat is (`usePages` hook)
-- A Footer linkek koze beillesztjuk az osszes publikalt oldalt, aminek van slug-ja
-
----
-
-## 2. Becenev eltavolitasa az admin oldalrol
-
-**Problema:** A "Potencialis szerzodok" tablazatban es a reszletes dialogusban meg megjelenik a `nickname` mezo, holott azt mar nem keri be a rendszer (automatikusan `brand + model`).
-
-**Erintett fajlok:**
-
-**`src/pages/AdminClients.tsx` (460-463. sor):**
-- A tablazatban a `car.nickname` helyett kozvetlenul `car.brand car.model` jelenik meg
-- Az alatta levo `car.brand car.model (car.year)` sort atirjuk csak `car.year` vagy eltavolitjuk a duplikaciòt
-
-**`src/components/admin/CarDetailsDialog.tsx` (301-303. sor):**
-- Az "Auto adatai" szekciobol eltavolitjuk a "Becenev" mezot
-- A dialog cimsorbol (214. sor) a `car.nickname` helyett `car.brand car.model`
-
----
-
-## 3. Regisztracio javitasok
-
-### 3a. Dupla email regisztracio megakadalyozasa
-**Problema:** Ugyanazzal az email cimmel tobbszor is lehet regisztralni.
-
-**Erintett fajl:** `supabase/functions/send-email-confirmation/index.ts`
-- A `generateLink({ type: "signup" })` hivas elott ellenorizzuk, hogy letezik-e mar felhasznalo az adott email cimmel
-- Ha igen, visszaadjuk a hibaüzenetet: "Ez az email cim mar regisztralva van. Ha elfelejtetted a jelszavad, hasznald az elfelejtett jelszo funkciót."
-
-### 3b. ASZF es Adatvedelem linkek uj ablakban
-**Problema:** A regisztracios oldalon az Adatvedelmi szabalyzat es ASZF linkek ugyanabban az ablakban nyilnak meg, igy az ügyfél elvesziti a mar beirt adatokat.
-
-**Erintett fajl:** `src/pages/Register.tsx` (282-288. sor)
-- A `<Link to="/adatvedelem">` es `<Link to="/aszf">` elemeket `<a href="..." target="_blank" rel="noopener noreferrer">` elemekre csereljuk
-
----
-
-## 4. Napszamitas javitasa (off-by-one bug)
-
-**Problema:** A napszamitas 1 nappal elcsuszhat, mert a `new Date('2026-02-19')` JavaScript-ben UTC idozonaban ertelmezheto (ejfel UTC), ami CET idozonaban (Magyarorszag) az elozo nap 23:00-nak felel meg. Igy a `setHours(0,0,0,0)` utana februar 18-at ad februar 19 helyett.
-
-**Megoldas:** A datum-string-ek parszolasanal explicit lokalis idot hasznalunk, pl. `new Date('2026-02-19T00:00:00')` (T idovel mar lokalisan ertelmezheto), vagy manualis parsolas: `new Date(year, month-1, day)`.
-
-**Erintett fajlok:**
-
-**`src/lib/carStatus.ts`:**
-- `calculateCarStatus` fuggveny (20-21. sor): `new Date(anniversaryDate)` lecserelese helyes lokalis parszolasra
-- `getTimelineMarkers` fuggveny (101. sor): ugyanaz
-
-**`src/lib/database.ts`:**
-- `getDaysUntilAnniversary` fuggveny (153-154. sor): ugyanaz
-- `formatHungarianDate` fuggveny (180. sor): ugyanaz
-
-**`src/pages/AdminClients.tsx`:**
-- `getDaysUntilAnniversary` fuggveny (168. sor): `parseISO` mar hasznalva, de a `new Date(today.getFullYear(), ...)` resznel is kell figyelni
-
-**Segedfiggveny letrehozasa:**
-```typescript
-// Helyes datum parsolas timezone-problemak elkerulesehez
-function parseLocalDate(dateStr: string): Date {
-  const [y, m, d] = dateStr.split('-').map(Number);
-  return new Date(y, m - 1, d);
-}
+// UTANA:
+// Ne toroljuk, tartsuk meg a mentett erteket amig a query frissul
 ```
 
+Az `onSuccess` callback a `useUpdateEmailTemplate`-ben mar hivja az `invalidateQueries`-t, de a valasz megindulasaig a regi `template.body_html` lenne hasznalatban. Ha megtartjuk az `editBodies`-ben az erteket, ez a problema nem all fenn.
+
 ---
 
-## Osszefoglalas
+## 2. Footer: GYIK link nem mukodik + lablec bejelentkezes utan is latszodjon
 
-| # | Hiba | Fajl(ok) | Suly |
-|---|------|----------|------|
-| 1 | Footer linkek | Footer.tsx | Kozep |
-| 2 | Becenev admin | AdminClients.tsx, CarDetailsDialog.tsx | Konnyu |
-| 3a | Dupla regisztracio | send-email-confirmation/index.ts | Kozep |
-| 3b | Linkek uj ablakban | Register.tsx | Konnyu |
-| 4 | Nap off-by-one | carStatus.ts, database.ts, AdminClients.tsx | Fontos |
+### 2a. GYIK link
+A `pages` tablaban letezik egy `gyik` slug-u publikalt oldal. A Footer linkeli `/gyik`-re. DE az `App.tsx`-ben nincs `/gyik` route -- csak `/kapcsolat`, `/impresszum`, `/munkatarsaink` van fix route-kent, es `/oldal/:slug` a dinamikus. A `/gyik` a catch-all `*` route-ra esik, ami `NotFound`.
+
+**Megoldas:** Ket lehetoseg:
+- A) Felvenni a `/gyik` route-ot is a fix route-ok koze (`<Route path="/gyik" element={<DynamicPage />} />`), VAGY
+- B) A Footer-ben a linkek `/oldal/${page.slug}` formatumban legyenek (ez a dinamikus route), VAGY
+- C) A catch-all elott egy altalanos `/:slug` route-ot felvenni
+
+A legjobb megoldas: a hianyzo slugokra (`gyik` es barmi mas uj oldal) is adjunk route-ot. Legegyszerubb: vegyunk fel egy `/:slug` route-ot a `*` catch-all ele, ami a `DynamicPage`-et rendereli. Igy MINDEN publikalt oldal elerheto kozvetlenul `/{slug}` URL-en.
+
+**Erintett fajl:** `src/App.tsx`
+- A `*` catch-all ELOTT felvenni: `<Route path="/:slug" element={<DynamicPage />} />`
+- A DynamicPage mar kezel slug paramot (`useParams`), es ha nem letezik az oldal, `NotFound`-ot mutat
+
+**Erintett fajl:** `src/pages/DynamicPage.tsx`
+- Mar kezel `paramSlug`-ot es `location.pathname`-et, de a `:slug` route-nal a `paramSlug` lesz kitoltve, tehat mukodni fog
+
+### 2b. Footer bejelentkezes utan
+Jelenleg a bejelentkezett felhasznalokat a `HomeRoute` atiranyitja `/dashboard`-ra, ami a `DashboardLayout`-ot hasznalja -- itt NINCS Footer. A Dashboard oldalak nem is tartalmaznak Footer-t.
+
+**Megoldas:** A `DashboardLayout` aljara tegyuk be a Footer komponenst. Igy minden dashboard oldalon megjelenik a lablec.
+
+**Erintett fajl:** `src/components/dashboard/DashboardLayout.tsx`
+- A `</main>` utan, a mobil bottom nav elott, beszurni a `<Footer />` komponenst a fo tartalomteruleten belul
+
+---
+
+## 3. Bejelentkezes utani toast: "Udvozlunk vissza!" -> "Udvozlunk!"
+
+### Problema
+A Login.tsx 56. soran a toast `description` erteke "Udvozlunk vissza!", de az ugyfel szerint "Udvozlunk!"-nak kellene lennie.
+
+FONTOS: Az ugyfel azt irja, hogy "Udvozlunk vissza!"-t kellene kiirnia, NEM azt, hogy "Udvozlunk!"-t. Tehat a jelenlegi "Udvozlunk vissza!" mar HELYES. Ez a pont mar RENDBEN VAN, nincs szukseg valtoztatasra.
+
+---
+
+## Osszefoglalo
+
+| # | Hiba | Fajl(ok) | Valtozas |
+|---|------|----------|----------|
+| 1 | Dupla mentes | AdminEmailTemplates.tsx | editBodies ne torlodjon mentes utan |
+| 2a | GYIK link 404 | App.tsx | /:slug catch-all route hozzaadasa |
+| 2b | Footer dashboard utan | DashboardLayout.tsx | Footer komponens beillesztese |
+| 3 | Bejelentkezes toast | - | Mar helyes, nincs teendo |
